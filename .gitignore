@@ -1,0 +1,94 @@
+# Gradle files
+.gradle/
+build/
+*/build/
+*/outputs/
+*/intermediates/
+*/generated/
+*.iml
+
+# Local configuration file (sdk path, etc)
+local.properties
+.env
+google-services.json
+
+# Android Studio specific files
+.idea/
+*.hprof
+*.log
+*.orig
+*.swp
+*.swo
+
+# User-specific configurations
+*.jks
+*.keystore
+
+# Android specific files
+*.apk
+*.ap_
+*.dex
+*.class
+*.so
+*.jar
+*.war
+*.zip
+*.tar.gz
+*.tgz
+*.7z
+*.gz
+*.bz2
+*.xz
+
+# NDK
+obj/
+jniLibs/
+
+# Miscellaneous
+.DS_Store
+*.class
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*.orig
+*.hprof
+
+# Kotlin specific
+*.kotlin_metadata
+
+# Android Studio captures
+captures/
+
+# External libraries
+external/
+
+# Gradle Wrapper
+gradle-wrapper.jar
+gradle-wrapper.properties
+
+# Android Studio settings
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/gradle.xml
+.idea/misc.xml
+.idea/vcs.xml
+.idea/assetWizardSettings.xml
+.idea/other.xml
+.idea/gradle.xml
+.idea/inspectionProfiles/
+.idea/dictionaries/
+.idea/vcs.xml
+.idea/usage.statistics.xml
+.idea/remote/
+
+# Build output directories
+build/
+*/build/
+*/outputs/
+*/intermediates/
+*/generated/
