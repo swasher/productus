@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 
 import com.swasher.productus.ui.theme.ProductusTheme
 import com.swasher.productus.presentation.camera.CameraActivity
+import com.swasher.productus.presentation.screens.FolderScreen
 import com.swasher.productus.presentation.screens.PhotoListScreen
 import com.swasher.productus.presentation.screens.PhotoDetailScreen
 import com.swasher.productus.presentation.viewmodel.PhotoViewModel
@@ -44,24 +45,23 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 Scaffold(
-                    topBar = { TopAppBar(title = { Text("Productus") }) },
-                    floatingActionButton = {
-                        FloatingActionButton(onClick = {
-                            startActivity(Intent(this@MainActivity, CameraActivity::class.java))
-                        }) {
-                            Text("+")
-                        }
-                    }
+                    topBar = { TopAppBar(title = { Text("My Productus Software") }) },
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
-                        startDestination = "photoList",
+                        startDestination = "folders",
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        composable("photoList") {
-                            PhotoListScreen(navController) // Передаем navController в PhotoListScreen
+                        composable("folders") {
+                            FolderScreen(navController)
+                        }
+                        composable("photoList/{folderName}") { backStackEntry ->
+                            val folderName = backStackEntry.arguments?.getString("folderName") ?: "Unsorted"
+                            PhotoListScreen(navController, folderName)
                         }
                         composable("photoDetail/{photoId}") { backStackEntry ->
+                            val folderName = backStackEntry.arguments?.getString("folderName") ?: "Unsorted"
+
                             val photoId = backStackEntry.arguments?.getString("photoId") ?: ""
                             val viewModel: PhotoViewModel = viewModel(factory = PhotoViewModel.Factory)
 
@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
                             val photo = photos.find { it.id == photoId } // Получаем фото из списка
 
                             if (photo != null) {
-                                PhotoDetailScreen(navController, photo)
+                                PhotoDetailScreen(navController, folderName, photo)
                             } else {
                                 Text("Фото не найдено")
                             }

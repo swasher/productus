@@ -35,16 +35,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhotoDetailScreen(navController: NavController, photo: Photo, viewModel: PhotoViewModel = viewModel()) {
+fun PhotoDetailScreen(navController: NavController, folderName: String, photo: Photo, viewModel: PhotoViewModel = viewModel()) {
 
     // look as depreciated
-    val repository = remember { PhotoRepository() }
+    // val repository = remember { PhotoRepository() }
 
     var comment by remember { mutableStateOf(photo.comment) }
     var tags by remember { mutableStateOf(photo.tags.joinToString(", ")) }
 
     // look as depreciated
-    val context = LocalContext.current
+    // val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -74,13 +74,6 @@ fun PhotoDetailScreen(navController: NavController, photo: Photo, viewModel: Pho
             )
 
             Text("Комментарий:")
-//            BasicTextField(
-//                value = comment,
-//                onValueChange = { comment = it },
-//                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-//                keyboardActions = KeyboardActions(onDone = { /* Скрыть клавиатуру */ }),
-//                modifier = Modifier.fillMaxWidth()
-//            )
             OutlinedTextField(
                 value = comment,
                 onValueChange = { comment = it },
@@ -88,13 +81,6 @@ fun PhotoDetailScreen(navController: NavController, photo: Photo, viewModel: Pho
             )
 
             Text("Теги (через запятую):")
-//            BasicTextField(
-//                value = tags,
-//                onValueChange = { tags = it },
-//                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-//                keyboardActions = KeyboardActions(onDone = { /* Скрыть клавиатуру */ }),
-//                modifier = Modifier.fillMaxWidth()
-//            )
             OutlinedTextField(
                 value = tags,
                 onValueChange = { tags = it },
@@ -103,7 +89,7 @@ fun PhotoDetailScreen(navController: NavController, photo: Photo, viewModel: Pho
 
             Button(
                 onClick = {
-                    viewModel.updatePhoto(photo.id, comment, tags.split(",").map { it.trim() })
+                    viewModel.updatePhoto(photo.folder, photo.id, comment, tags.split(",").map { it.trim() })
                     navController.popBackStack()
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -118,5 +104,5 @@ fun PhotoDetailScreen(navController: NavController, photo: Photo, viewModel: Pho
 @Preview(showBackground = true)
 @Composable
 fun PreviewPhotoDetailScreen() {
-    PhotoDetailScreen(NavController(LocalContext.current), Photo(id = "1", imageUrl = "https://placehold.co/200"))
+    PhotoDetailScreen(NavController(LocalContext.current), "DefaultFolder", Photo(id = "1", imageUrl = "https://placehold.co/200"))
 }

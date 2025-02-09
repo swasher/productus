@@ -101,6 +101,7 @@ class CameraActivity : AppCompatActivity(), CameraXConfig.Provider {
 
     private fun uploadToCloudinary(uri: Uri) {
         val uploadDir = BuildConfig.CLOUDINARY_UPLOAD_DIR
+        val folderName = intent.getStringExtra("folderName") ?: "Unsorted"
         val photoRepository = PhotoRepository()
 
         MediaManager.get().upload(uri)
@@ -115,7 +116,7 @@ class CameraActivity : AppCompatActivity(), CameraXConfig.Provider {
 
                     // 📌 Сохраняем в Firestore
                     photoRepository.savePhoto(
-                        imageUrl,
+                        imageUrl, folderName,
                         onSuccess = {
                             Log.d("CameraActivity", "Фото сохранено в Firestore")
                             finish()
