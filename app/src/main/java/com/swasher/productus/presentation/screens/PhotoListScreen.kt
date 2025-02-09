@@ -1,6 +1,7 @@
 package com.swasher.productus.presentation.screens
 
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavController
@@ -8,6 +9,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -45,40 +47,6 @@ import com.swasher.productus.presentation.camera.CameraActivity
 import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
 
-//@OptIn(ExperimentalMaterial3Api::class)
-//@Composable
-//fun PhotoListScreen(navController: NavController, viewModel: PhotoViewModel = viewModel()) {
-//    val photos by viewModel.photos.collectAsState()
-//
-//    LaunchedEffect(Unit) {
-//        viewModel.loadPhotos()
-////        viewModel.observePhotos()
-//    }
-//
-//    Scaffold(
-//        topBar = { TopAppBar(title = { Text("Ваши Фото") }) }
-//    ) { padding ->
-//        if (photos.isEmpty()) {
-//            Box(
-//                modifier = Modifier.fillMaxSize(),
-//                contentAlignment = Alignment.Center
-//            ) {
-//                Text("Нет загруженных фото")
-//            }
-//        } else {
-//            LazyColumn(
-//                contentPadding = padding,
-//                verticalArrangement = Arrangement.spacedBy(8.dp),
-//                modifier = Modifier.padding(16.dp)
-//            ) {
-//                items(photos) { photo ->
-//                    PhotoItem(photo, navController)
-//                    // было PhotoItem(photo.imageUrl)
-//                }
-//            }
-//        }
-//    }
-//}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PhotoListScreen(navController: NavController, folderName: String, viewModel: PhotoViewModel = viewModel()) {
@@ -94,7 +62,8 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
     // Устанавливаем текущую папку
     LaunchedEffect(folderName) {
-        viewModel.loadPhotos(folderName)
+//        viewModel.loadPhotos(folderName)
+        viewModel.startObservingPhotos(folderName)
     }
 
     Scaffold(
@@ -170,7 +139,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(photos) { photo ->
-                        PhotoItem(photo, navController)
+                        PhotoItem(photo=photo, folderName, navController)
                     }
                 }
             }
@@ -179,31 +148,30 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 }
 
 
+
 @Composable
-fun PhotoItem(photo: Photo, navController: NavController) {
+fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                Log.d("PhotoListScreen", "Открываем фото: ${photo.id}") // ✅ Логируем клик
+                navController.navigate("photoDetail/$folderName/${photo.id}")
+            },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Image(
             painter = rememberAsyncImagePainter(photo.imageUrl),
-            contentDescription = null,
+            contentDescription = "Фото",
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
         )
-
-        // Кнопка для перехода на экран редактирования
-        Button(
-            onClick = { navController.navigate("photoDetail/${photo.id}") },
-            modifier = Modifier.fillMaxWidth().padding(8.dp)
-        ) {
-            Text("Редактировать")
-        }
-
     }
 }
+
+
 
 @Preview(showBackground = true)
 @Composable

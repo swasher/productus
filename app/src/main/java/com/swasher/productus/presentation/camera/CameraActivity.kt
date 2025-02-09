@@ -28,8 +28,10 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.ViewModelProvider
 import com.swasher.productus.BuildConfig
 import com.swasher.productus.data.repository.PhotoRepository
+import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
 @AndroidEntryPoint
 class CameraActivity : AppCompatActivity(), CameraXConfig.Provider {
@@ -75,30 +77,6 @@ class CameraActivity : AppCompatActivity(), CameraXConfig.Provider {
         })
     }
 
-//    private fun uploadToCloudinary(uri: Uri) {
-//        val uploadDir = BuildConfig.CLOUDINARY_UPLOAD_DIR
-//
-//        val request = MediaManager.get().upload(uri)
-//            .option("resource_type", "image")
-//            .option("folder", uploadDir)
-//            .callback(object : UploadCallback {
-//                override fun onStart(requestId: String) {}
-//                override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {}
-//                override fun onSuccess(requestId: String, resultData: Map<*, *>) {
-//                    val imageUrl = resultData["secure_url"] as String
-//                    Log.d("CameraActivity", "Фото загружено: $imageUrl")
-//                    finish()
-//                }
-//
-//                override fun onError(requestId: String, error: ErrorInfo) {
-//                    Log.e("CameraActivity", "Ошибка загрузки: ${error.description}")
-//                }
-//
-//                override fun onReschedule(requestId: String, error: ErrorInfo) {}
-//            })
-//            .dispatch()
-//    }
-
     private fun uploadToCloudinary(uri: Uri) {
         val uploadDir = BuildConfig.CLOUDINARY_UPLOAD_DIR
         val folderName = intent.getStringExtra("folderName") ?: "Unsorted"
@@ -116,9 +94,14 @@ class CameraActivity : AppCompatActivity(), CameraXConfig.Provider {
 
                     // 📌 Сохраняем в Firestore
                     photoRepository.savePhoto(
-                        imageUrl, folderName,
+                        folderName, imageUrl,
                         onSuccess = {
                             Log.d("CameraActivity", "Фото сохранено в Firestore")
+
+                            // Уведомляем ViewModel о новом фото
+                            val viewModel = ViewModelProvider(this@CameraActivity).get(PhotoViewModel::class.java)
+                            viewModel.loadPhotos(folderName) // Перезагружаем фото для текущей папки
+
                             finish()
                         },
                         onFailure = { e ->

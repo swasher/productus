@@ -1,5 +1,6 @@
 package com.swasher.productus.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.swasher.productus.data.model.Photo
@@ -74,19 +75,42 @@ class PhotoViewModel : ViewModel() {
     }
 
     fun loadPhotos(folder: String) {
+        Log.d("PhotoViewModel", "Загружаем фото для папки: $folder") // ✅ Логируем вызов
         repository.getPhotos(
             folder = folder,
-            onSuccess = { _photos.value = it },
+            onSuccess = {
+                _photos.value = it
+                Log.d("PhotoViewModel", "Загружено фото: ${it.size}")
+            },
+            onFailure = {
+                it.printStackTrace()
+                Log.e("PhotoViewModel", "Ошибка загрузки фото: ${it.message}")
+            }
+        )
+    }
+
+    fun deletePhoto(folder: String, photoId: String, imageUrl: String) {
+        repository.deletePhoto(
+            folder = folder,
+            photoId = photoId,
+            imageUrl = imageUrl,
+            onSuccess = { loadPhotos(folder) }, // ✅ Обновляем список фото
             onFailure = { it.printStackTrace() }
         )
     }
 
-    init {
-        observePhotos()
+
+//    init {
+//        observePhotos()
+//    }
+
+    fun startObservingPhotos(folder: String) {
+        observePhotos(folder)
     }
 
-    private fun observePhotos() {
+    private fun observePhotos(folder: String) {
         repository.observePhotos(
+            folder = folder,
             onUpdate = { _photos.value = it },
             onFailure = { it.printStackTrace() }
         )

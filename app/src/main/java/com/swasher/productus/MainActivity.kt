@@ -2,6 +2,7 @@ package com.swasher.productus
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -23,6 +24,7 @@ import androidx.compose.material3.*
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
+import androidx.compose.runtime.LaunchedEffect
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -45,7 +47,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 Scaffold(
-                    topBar = { TopAppBar(title = { Text("My Productus Software") }) },
+                    // topBar = { TopAppBar(title = { Text("My Productus Software") }) },
                 ) { innerPadding ->
                     NavHost(
                         navController = navController,
@@ -59,16 +61,24 @@ class MainActivity : ComponentActivity() {
                             val folderName = backStackEntry.arguments?.getString("folderName") ?: "Unsorted"
                             PhotoListScreen(navController, folderName)
                         }
-                        composable("photoDetail/{photoId}") { backStackEntry ->
+                        composable("photoDetail/{folderName}/{photoId}") { backStackEntry ->
                             val folderName = backStackEntry.arguments?.getString("folderName") ?: "Unsorted"
-
                             val photoId = backStackEntry.arguments?.getString("photoId") ?: ""
+
                             val viewModel: PhotoViewModel = viewModel(factory = PhotoViewModel.Factory)
-
                             val photosState = viewModel.photos.collectAsState() // Получаем State<List<Photo>>
-                            val photos = photosState.value // Получаем List<Photo>
 
+                            LaunchedEffect(folderName) {
+                                viewModel.loadPhotos(folderName)
+                            }
+
+                            val photos = photosState.value // Получаем List<Photo>
                             val photo = photos.find { it.id == photoId } // Получаем фото из списка
+
+                            Log.d("MainActivity", "FolderName: $folderName")
+                            Log.d("MainActivity", "PhotoId: $photoId")
+                            Log.d("MainActivity", "Photos: $photos")
+                            Log.d("MainActivity", "Photo: $photo")
 
                             if (photo != null) {
                                 PhotoDetailScreen(navController, folderName, photo)

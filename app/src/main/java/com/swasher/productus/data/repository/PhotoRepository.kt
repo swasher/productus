@@ -2,6 +2,7 @@ package com.swasher.productus.data.repository
 
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import com.cloudinary.android.MediaManager
 import com.google.firebase.firestore.FirebaseFirestore
 import com.swasher.productus.data.model.Photo
@@ -25,14 +26,20 @@ class PhotoRepository {
 
     // Получаем фото внутри конкретной папки
     fun getPhotos(folder: String, onSuccess: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
+        Log.d("PhotoRepository", "Fetching photos for folder: $folder")
         firestore.collection("Folders").document(folder).collection("Photos")
             .orderBy("createdAt")
             .get()
             .addOnSuccessListener { snapshot ->
+                Log.d("PhotoRepository", "Получено документов: ${snapshot.size()}")
                 val photos = snapshot.documents.mapNotNull { it.toObject(Photo::class.java) }
+                Log.d("PhotoRepository", "Преобразовано фото: ${photos.size}")
                 onSuccess(photos)
             }
-            .addOnFailureListener { onFailure(it) }
+            .addOnFailureListener {
+                Log.e("PhotoRepository", "Ошибка загрузки фото: ${it.message}")
+                onFailure(it)
+            }
     }
 
     // Сохраняем фото в конкретную коллекцию (папку)
@@ -43,6 +50,7 @@ class PhotoRepository {
         val photo = Photo(
             id = publicId,
             imageUrl = imageUrl,
+            folder = folder,
             comment = "",
             tags = emptyList(),
             createdAt = System.currentTimeMillis()
@@ -55,68 +63,24 @@ class PhotoRepository {
             .addOnFailureListener { onFailure(it) }
     }
 
-    // ???????????? depreciated?
-//    // Удаляем всю папку с фото
-//    fun deleteFolder(folder: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-//        val folderRef = firestore.collection("Folders").document(folder).collection("Photos")
-//        folderRef.get().addOnSuccessListener { snapshot ->
-//            val batch = firestore.batch()
-//            snapshot.documents.forEach { batch.delete(it.reference) }
-//            batch.commit().addOnSuccessListener {
-//                // OLD folderRef.parent?.delete()?.addOnSuccessListener { onSuccess() }
-//                firestore.collection("Folders").document(folder).delete()
-//                    .addOnSuccessListener { onSuccess() }
-//                    .addOnFailureListener { onFailure(it) }
-//            }.addOnFailureListener { onFailure(it) }
-//        }.addOnFailureListener { onFailure(it) }
-//    }
 
-    fun observePhotos(onUpdate: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
-        photosCollection.orderBy("createdAt").addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                onFailure(error)
-                return@addSnapshotListener
+
+    fun observePhotos(folder: String, onUpdate: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
+        firestore.collection("Folders").document(folder).collection("Photos")
+            .orderBy("createdAt")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onFailure(error)
+                    return@addSnapshotListener
+                }
+
+                val photos = snapshot?.documents?.mapNotNull { it.toObject(Photo::class.java) } ?: emptyList()
+                onUpdate(photos)
             }
-
-            val photos = snapshot?.documents?.mapNotNull { it.toObject(Photo::class.java) } ?: emptyList()
-            onUpdate(photos)
-        }
     }
 
-//    private fun deletePhotosFromCloudinary(photoUrls: List<String>, onComplete: () -> Unit) {
-//        if (photoUrls.isEmpty()) {
-//            onComplete() // Если фото нет, просто завершаем
-//            return
-//        }
-//
-//        val publicIds = photoUrls.map { it.substringAfterLast("/") } // 📌 Получаем public_id из URL
-//            .map { it.substringBeforeLast(".") } // Убираем расширение файла
-//
-//        val deleteRequests = publicIds.map { publicId ->
-//            MediaManager.get().cloudinary.uploader().destroy(publicId, null)
-//        }
-//
-//        // Список для хранения результатов удаления
-//        val deleteResults = mutableListOf<Boolean>()
-//        val totalRequests = deleteRequests.size
-//
-//        // Обработка каждого запроса
-//        deleteRequests.forEach { request ->
-//            request.execute { result ->
-//                // Обработка результата
-//                if (result != null && result.get("result") == "ok") {
-//                    deleteResults.add(true)
-//                } else {
-//                    deleteResults.add(false)
-//                }
-//
-//                // Проверяем, завершились ли все запросы
-//                if (deleteResults.size == totalRequests) {
-//                    onComplete() // Завершаем, когда все запросы обработаны
-//                }
-//            }
-//        }
-//    }
+
+
 
     fun deletePhotosFromCloudinary(photoUrls: List<String>, onComplete: () -> Unit) {
         if (photoUrls.isEmpty()) {
@@ -161,30 +125,58 @@ class PhotoRepository {
     }
 
 
-    // OLD
-    //    fun updatePhoto(photoId: String, comment: String, tags: List<String>, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-    //        val updates = mapOf(
-    //            "comment" to comment,
-    //            "tags" to tags
-    //        )
-    //
-    //        photosCollection.document(photoId)
-    //            .update(updates)
-    //            .addOnSuccessListener { onSuccess() }
-    //            .addOnFailureListener { onFailure(it) }
-    //    }
+    fun deletePhoto(folder: String, photoId: String, imageUrl: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        firestore.collection("Folders").document(folder).collection("Photos")
+            .document(photoId)
+            .delete()
+            .addOnSuccessListener {
+                // ✅ Удаляем фото из Cloudinary
+                val publicId = imageUrl.substringAfterLast("/").substringBeforeLast(".")
+
+                Log.d("PhotoRepository", "Extracted publicId: $publicId from URL: $imageUrl")
+
+
+                // if only for debug
+                if (publicId.isEmpty()) {
+                    Log.e("PhotoRepository", "Invalid publicId extracted from URL: $imageUrl")
+                    onFailure(Exception("Invalid publicId"))
+                }
+
+
+                try {
+                    val result = MediaManager.get().cloudinary.uploader().destroy(publicId, null)
+                    // Более раскрытая версия для дебага, но можно и так оставить, если работает
+                    //                    Log.d("PhotoRepository", "Фото удалено из Cloudinary: $publicId, result: $result")
+                    //                    onSuccess()
+
+                    if (result == null || result["result"] != "ok") {
+                        Log.e("PhotoRepository", "Cloudinary deletion failed: $result")
+                        onFailure(Exception("Cloudinary deletion failed"))
+                    } else {
+                        Log.d("PhotoRepository", "Фото удалено из Cloudinary: $publicId, result: $result")
+                        onSuccess()
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("PhotoRepository", "Ошибка удаления из Cloudinary: ${e.message}")
+                    onFailure(e)
+                }
+            }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+
     fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val updates = mapOf(
             "comment" to comment,
             "tags" to tags
         )
 
-        FirebaseFirestore.getInstance().collection(folder) // 📌 Используем folder как имя коллекции
+        firestore.collection("Folders").document(folder).collection("Photos")
             .document(photoId)
             .update(updates)
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onFailure(it) }
     }
-
 
 }

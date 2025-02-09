@@ -23,7 +23,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 
 import com.swasher.productus.data.model.Photo
 import com.swasher.productus.data.repository.PhotoRepository
@@ -37,22 +39,27 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun PhotoDetailScreen(navController: NavController, folderName: String, photo: Photo, viewModel: PhotoViewModel = viewModel()) {
 
-    // look as depreciated
-    // val repository = remember { PhotoRepository() }
-
     var comment by remember { mutableStateOf(photo.comment) }
     var tags by remember { mutableStateOf(photo.tags.joinToString(", ")) }
-
-    // look as depreciated
-    // val context = LocalContext.current
+    var showDeleteDialog by remember { mutableStateOf(false) } // ✅ Состояние диалога удаления
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Редактирование фото") },
+                title = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(folderName)
+                        IconButton(onClick = { showDeleteDialog = true }) { // ✅ Кнопка удаления
+                            Icon(Icons.Default.Delete, contentDescription = "Удалить фото")
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 }
             )
@@ -72,6 +79,7 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
                     .fillMaxWidth()
                     .height(200.dp)
             )
+            Text("Категория: $folderName")
 
             Text("Комментарий:")
             OutlinedTextField(
@@ -89,7 +97,7 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
 
             Button(
                 onClick = {
-                    viewModel.updatePhoto(photo.folder, photo.id, comment, tags.split(",").map { it.trim() })
+                    viewModel.updatePhoto(folderName, photo.id, comment, tags.split(",").map { it.trim() })
                     navController.popBackStack()
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -99,6 +107,32 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
 
         }
     }
+
+    // ✅ Диалог подтверждения удаления
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Удалить фото?") },
+            text = { Text("Вы уверены, что хотите удалить это фото? Это действие нельзя отменить.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deletePhoto(folderName, photo.id, photo.imageUrl) // ✅ Удаляем фото
+                        navController.popBackStack("photoList/$folderName", inclusive = false) // ✅ Возвращаемся к списку фото
+                    }
+                ) {
+                    Text("Удалить")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showDeleteDialog = false }) {
+                    Text("Отмена")
+                }
+            }
+        )
+    }
+
+
 }
 
 @Preview(showBackground = true)
