@@ -1,5 +1,6 @@
 package com.swasher.productus
 
+import FullScreenPhotoScreen
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -85,6 +86,10 @@ class MainActivity : ComponentActivity() {
                             } else {
                                 Text("Фото не найдено")
                             }
+                        }
+                        composable("fullScreenPhoto/{imageUrl}") { backStackEntry ->
+                            val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
+                            FullScreenPhotoScreen(navController, imageUrl)
                         }
                     }
                 }

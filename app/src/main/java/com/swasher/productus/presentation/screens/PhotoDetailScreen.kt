@@ -1,10 +1,10 @@
 package com.swasher.productus.presentation.screens
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.gestures.rememberTransformableState
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -27,6 +27,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 
 import com.swasher.productus.data.model.Photo
 import com.swasher.productus.data.repository.PhotoRepository
@@ -34,6 +36,8 @@ import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
 
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,7 +83,11 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
                 contentDescription = "Фото",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
+                    .height(150.dp)
+                    .clickable {
+                        val encodedUrl = URLEncoder.encode(photo.imageUrl, StandardCharsets.UTF_8.toString())
+                        navController.navigate("fullScreenPhoto/$encodedUrl")
+                    }
             )
             Text("Категория: $folderName")
 
@@ -137,8 +145,11 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
 
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewPhotoDetailScreen() {
-    PhotoDetailScreen(NavController(LocalContext.current), "DefaultFolder", Photo(id = "1", imageUrl = "https://placehold.co/200"))
-}
+// deprecated
+//@Preview(showBackground = true)
+//@Composable
+//fun PreviewPhotoDetailScreen() {
+//    PhotoDetailScreen(NavController(LocalContext.current), "DefaultFolder", Photo(id = "1", imageUrl = "https://placehold.co/200"))
+//}
+
+
