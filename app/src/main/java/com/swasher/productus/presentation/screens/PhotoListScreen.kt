@@ -71,20 +71,6 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
             TopAppBar(
                 title = { Text(folderName) },
                 actions = {
-                    IconButton(onClick = {
-                        viewModel.deleteFolder(
-                            folderName,
-                            onSuccess = {
-                                navController.popBackStack("folders", inclusive = false) // ✅ Возвращаемся на экран папок
-                            },
-                            onFailure = { exception ->
-                                exception.printStackTrace() // ✅ Выводим ошибку в лог
-                            }
-                        )
-                    }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Удалить папку")
-                    }
-
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {

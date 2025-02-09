@@ -50,6 +50,70 @@ class PhotoViewModel : ViewModel() {
             .addOnSuccessListener { loadFolders() }
     }
 
+
+//    fun renameFolder(oldName: String, newName: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+//        val oldFolderRef = firestore.collection("Folders").document(oldName)
+//        val newFolderRef = firestore.collection("Folders").document(newName)
+//
+//        oldFolderRef.collection("Photos").get()
+//            .addOnSuccessListener { snapshot ->
+//                val batch = firestore.batch()
+//
+//                snapshot.documents.forEach { doc ->
+//                    val newDocRef = newFolderRef.collection("Photos").document(doc.id)
+//                    // batch.set(newDocRef, doc.data ?: emptyMap()) // ✅ Копируем фото в новую папку
+//                    // change by Claude:
+//                    // batch.set(newDocRef, doc.data ?: emptyMap<String, Any>())
+//
+//                    batch.set(newDocRef, doc.data ?: emptyMap<String, Any>())
+//                    batch.delete(doc.reference) // ✅ Удаляем из старой
+//                }
+//
+//                batch.commit().addOnSuccessListener {
+//                    oldFolderRef.delete() // ✅ Удаляем старую папку
+//                        .addOnSuccessListener {
+//                            loadFolders() // ✅ Обновляем список папок
+//                            onSuccess()
+//                        }
+//                        .addOnFailureListener { onFailure(it) }
+//                }.addOnFailureListener { onFailure(it) }
+//            }
+//            .addOnFailureListener { onFailure(it) }
+//    }
+
+    fun renameFolder(oldName: String, newName: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        val oldFolderRef = firestore.collection("Folders").document(oldName)
+        val newFolderRef = firestore.collection("Folders").document(newName)
+
+        // ✅ Создаём пустую новую папку (метаданные)
+        newFolderRef.set(mapOf("createdAt" to System.currentTimeMillis()))
+            .addOnSuccessListener {
+                oldFolderRef.collection("Photos").get()
+                    .addOnSuccessListener { snapshot ->
+                        val batch = firestore.batch()
+
+                        snapshot.documents.forEach { doc ->
+                            val newDocRef = newFolderRef.collection("Photos").document(doc.id)
+                            batch.set(newDocRef, doc.data ?: emptyMap<String, Any>()) // ✅ Копируем фото в новую папку
+                            batch.delete(doc.reference) // ✅ Удаляем из старой папки
+                        }
+
+                        batch.commit().addOnSuccessListener {
+                            // ✅ Удаляем только метаданные старой папки, не трогая фото
+                            oldFolderRef.delete()
+                                .addOnSuccessListener {
+                                    loadFolders() // ✅ Обновляем список папок
+                                    onSuccess()
+                                }
+                                .addOnFailureListener { onFailure(it) }
+                        }.addOnFailureListener { onFailure(it) }
+                    }
+                    .addOnFailureListener { onFailure(it) }
+            }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+
     fun deleteFolder(folder: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val folderRef = firestore.collection("Folders").document(folder).collection("Photos")
 
@@ -67,7 +131,10 @@ class PhotoViewModel : ViewModel() {
                 // 📌 Удаляем фото из Cloudinary
                 repository.deletePhotosFromCloudinary(photoUrls) {
                     firestore.collection("Folders").document(folder).delete()
-                        .addOnSuccessListener { onSuccess() }
+                        .addOnSuccessListener {
+                            loadFolders()
+                            onSuccess()
+                        }
                         .addOnFailureListener { onFailure(it) }
                 }
             }.addOnFailureListener { onFailure(it) }

@@ -1,14 +1,19 @@
 package com.swasher.productus.presentation.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -21,8 +26,12 @@ import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 @Composable
 fun FolderScreen(navController: NavController, viewModel: PhotoViewModel = viewModel())  {
     val folders by viewModel.folders.collectAsState()
-    var showDialog by remember { mutableStateOf(false) }
-    var newFolderName by remember { mutableStateOf("") }
+    var folderToRename by remember { mutableStateOf<String?>(null) } // ✅ Выбранная папка для переименования
+    var newFolderName by remember { mutableStateOf("") } // ✅ Новое имя папки
+    var showRenameDialog by remember { mutableStateOf(false) } // ✅ Состояние диалога
+    var folderToDelete by remember { mutableStateOf<String?>(null) } // ✅ Состояние выбранной папки
+    var showDeleteDialog by remember { mutableStateOf(false) } // ✅ Состояние диалога удаления категории
+    var showNewFolderDialog by remember { mutableStateOf(false) }    // dialog для создания категории
 
     // 📌 Загружаем список папок при запуске экрана
     LaunchedEffect(Unit) {
@@ -30,37 +39,94 @@ fun FolderScreen(navController: NavController, viewModel: PhotoViewModel = viewM
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Разделы") }) },
+        topBar = { TopAppBar(title = { Text("Категории") }) },
         floatingActionButton = {
-            FloatingActionButton(onClick = { showDialog = true }) {
+            FloatingActionButton(onClick = { showNewFolderDialog = true }) {
                 Icon(Icons.Default.Add, contentDescription = "Добавить папку")
             }
         }
     ) { padding ->
-        LazyColumn(
-            contentPadding = padding,
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(folders) { folder ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { navController.navigate("photoList/$folder") },
-                    elevation = CardDefaults.cardElevation(4.dp)
-                ) {
-                    Text(
-                        text = folder,
-                        modifier = Modifier.padding(16.dp),
-                        style = MaterialTheme.typography.titleLarge
-                    )
+
+
+
+
+//        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+//            if (folders.isEmpty()) {
+//                Text("Нет созданных папок", modifier = Modifier.padding(16.dp))
+//            } else {
+//                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+//                    items(folders) { folder ->
+//                        Row(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .clickable { navController.navigate("photoList/$folder") },
+//                            horizontalArrangement = Arrangement.SpaceBetween
+//                        ) {
+//                            Text(text = folder, modifier = Modifier.padding(16.dp))
+//
+//                            IconButton(onClick = {
+//                                folderToDelete = folder // ✅ Сохраняем папку, которую хотим удалить
+//                                showDeleteDialog = true // ✅ Показываем диалог
+//                            }) {
+//                                Icon(Icons.Default.Delete, contentDescription = "Удалить папку")
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+
+
+        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+            if (folders.isEmpty()) {
+                Text("Нет созданных папок", modifier = Modifier.padding(16.dp))
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(folders) { folder ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { navController.navigate("photoList/$folder") }
+                                .padding(8.dp), // Отступы вокруг карточки
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp) // Тень для карточки
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp), // Отступы внутри карточки
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = folder)
+
+                                Row {
+                                    IconButton(onClick = {
+                                        folderToRename = folder
+                                        newFolderName = folder
+                                        showRenameDialog = true
+                                    }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Переименовать папку")
+                                    }
+                                    IconButton(onClick = {
+                                        folderToDelete = folder
+                                        showDeleteDialog = true
+                                    }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Удалить папку")
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        if (showDialog) {
+
+
+        // ✅ Диалог создания папки
+        if (showNewFolderDialog) {
             AlertDialog(
-                onDismissRequest = { showDialog = false },
+                onDismissRequest = { showNewFolderDialog = false },
                 title = { Text("Создать папку") },
                 text = {
                     OutlinedTextField(
@@ -72,18 +138,86 @@ fun FolderScreen(navController: NavController, viewModel: PhotoViewModel = viewM
                 confirmButton = {
                     Button(onClick = {
                         viewModel.createFolder(newFolderName)
-                        showDialog = false
+                        showNewFolderDialog = false
                     }) {
                         Text("Создать")
                     }
                 },
                 dismissButton = {
-                    Button(onClick = { showDialog = false }) {
+                    Button(onClick = { showNewFolderDialog = false }) {
                         Text("Отмена")
                     }
                 }
             )
         }
+
+
+        // ✅ Диалог переименования папки
+        if (showRenameDialog) {
+            AlertDialog(
+                onDismissRequest = { showRenameDialog = false },
+                title = { Text("Переименовать папку") },
+                text = {
+                    OutlinedTextField(
+                        value = newFolderName,
+                        onValueChange = { newFolderName = it },
+                        label = { Text("Новое название") }
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            folderToRename?.let { oldName ->
+                                viewModel.renameFolder(oldName, newFolderName, onSuccess = {
+                                    showRenameDialog = false
+                                    navController.popBackStack("folders", inclusive = false) // ✅ Обновляем список
+                                }, onFailure = {
+                                    showRenameDialog = false
+                                })
+                            }
+                        }
+                    ) {
+                        Text("Сохранить")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { showRenameDialog = false }) {
+                        Text("Отмена")
+                    }
+                }
+            )
+        }
+
+        // ✅ Диалог подтверждения удаления папки
+        if (showDeleteDialog) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Удалить папку?") },
+                text = { Text("Вы уверены, что хотите удалить эту папку и все её фото? Это действие нельзя отменить.") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            folderToDelete?.let { folder ->
+                                viewModel.deleteFolder(folder, onSuccess = {
+                                    showDeleteDialog = false
+                                    navController.popBackStack("folders", inclusive = false) // ✅ Обновляем список
+                                }, onFailure = {
+                                    showDeleteDialog = false
+                                })
+                            }
+                        }
+                    ) {
+                        Text("Удалить")
+                    }
+                },
+                dismissButton = {
+                    Button(onClick = { showDeleteDialog = false }) {
+                        Text("Отмена")
+                    }
+                }
+            )
+        }
+
 
     }
 }

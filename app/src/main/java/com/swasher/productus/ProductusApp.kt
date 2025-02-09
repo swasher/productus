@@ -27,7 +27,7 @@ class CloudinaryManager {
                 put("api_key", BuildConfig.CLOUDINARY_API_KEY)
                 put("api_secret", BuildConfig.CLOUDINARY_API_SECRET)
             }
-            Log.d("CloudinaryManager", "+++" + BuildConfig.CLOUDINARY_API_KEY)
+            Log.d("CloudinaryManager", BuildConfig.CLOUDINARY_API_KEY)
             MediaManager.init(context, config)
         }
     }

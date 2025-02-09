@@ -4,8 +4,13 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import com.cloudinary.android.MediaManager
+import com.cloudinary.utils.ObjectUtils
 import com.google.firebase.firestore.FirebaseFirestore
 import com.swasher.productus.data.model.Photo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.UUID
 
 class PhotoRepository {
@@ -80,47 +85,36 @@ class PhotoRepository {
     }
 
 
-
-
     fun deletePhotosFromCloudinary(photoUrls: List<String>, onComplete: () -> Unit) {
         if (photoUrls.isEmpty()) {
             onComplete() // Если фото нет, просто завершаем
             return
         }
-        val publicIds = photoUrls.map { it.substringAfterLast("/") } // Получаем public_id из URL
-            .map { it.substringBeforeLast(".") } // Убираем расширение файла
 
-        // Список для хранения результатов удаления
-        val deleteResults = mutableListOf<Boolean>()
-        val totalRequests = publicIds.size
+        val publicIds = photoUrls.map { url ->
+            "PRODUCTUS/" + url.substringAfterLast("/").substringBeforeLast(".") // ✅ Добавляем путь
+        }
 
-        // Создаем и запускаем каждый запрос в отдельном потоке
-        publicIds.forEach { publicId ->
-            Thread {
-                try {
-                    val result = MediaManager.get().cloudinary.uploader().destroy(publicId, null)
-                    synchronized(deleteResults) {
-                        deleteResults.add(result != null && result.get("result") == "ok")
-                        // Проверяем, завершились ли все запросы
-                        if (deleteResults.size == totalRequests) {
-                            // Выполняем callback в главном потоке
-                            Handler(Looper.getMainLooper()).post {
-                                onComplete()
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    synchronized(deleteResults) {
-                        deleteResults.add(false)
-                        if (deleteResults.size == totalRequests) {
-                            Handler(Looper.getMainLooper()).post {
-                                onComplete()
-                            }
-                        }
-                    }
+        Log.d("PhotoRepository", "Удаляем фото из Cloudinary: $publicIds") // ✅ Логируем удаляемые файлы
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val deleteResults = publicIds.map { publicId ->
+                    MediaManager.get().cloudinary.uploader().destroy(publicId, null)
                 }
-            }.start()
+
+                val successfulDeletes = deleteResults.count { it?.get("result") == "ok" }
+                Log.d("PhotoRepository", "Успешно удалено фото: $successfulDeletes из ${publicIds.size}")
+
+                withContext(Dispatchers.Main) {
+                    onComplete()
+                }
+            } catch (e: Exception) {
+                Log.e("PhotoRepository", "Ошибка массового удаления из Cloudinary: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    onComplete()
+                }
+            }
         }
     }
 
@@ -130,40 +124,50 @@ class PhotoRepository {
             .document(photoId)
             .delete()
             .addOnSuccessListener {
-                // ✅ Удаляем фото из Cloudinary
-                val publicId = imageUrl.substringAfterLast("/").substringBeforeLast(".")
+                // В пути должно быть PRODUCTUS
+//                val parts = imageUrl.split("/upload/")[1].split("/")
+//                val publicId = parts.drop(1).joinToString("/").substringBeforeLast(".")
+                val publicId = "PRODUCTUS/" + imageUrl.substringAfterLast("/").substringBeforeLast(".")
+
 
                 Log.d("PhotoRepository", "Extracted publicId: $publicId from URL: $imageUrl")
 
-
-                // if only for debug
                 if (publicId.isEmpty()) {
                     Log.e("PhotoRepository", "Invalid publicId extracted from URL: $imageUrl")
                     onFailure(Exception("Invalid publicId"))
+                    return@addOnSuccessListener
                 }
 
+                // Запускаем удаление из Cloudinary в фоновом потоке
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
 
-                try {
-                    val result = MediaManager.get().cloudinary.uploader().destroy(publicId, null)
-                    // Более раскрытая версия для дебага, но можно и так оставить, если работает
-                    //                    Log.d("PhotoRepository", "Фото удалено из Cloudinary: $publicId, result: $result")
-                    //                    onSuccess()
-
-                    if (result == null || result["result"] != "ok") {
-                        Log.e("PhotoRepository", "Cloudinary deletion failed: $result")
-                        onFailure(Exception("Cloudinary deletion failed"))
-                    } else {
-                        Log.d("PhotoRepository", "Фото удалено из Cloudinary: $publicId, result: $result")
-                        onSuccess()
+                         val deleteResult = MediaManager.get().cloudinary.uploader().destroy(publicId, null)
+                        if (deleteResult != null && deleteResult.get("result") == "ok") {
+                            Log.d("PhotoRepository", "Фото удалено из Cloudinary: $publicId, result: $deleteResult")
+                            withContext(Dispatchers.Main) {
+                                onSuccess()
+                            }
+                        } else {
+                            Log.e("PhotoRepository", "Cloudinary deletion failed: $deleteResult")
+                            withContext(Dispatchers.Main) {
+                                onFailure(Exception("Cloudinary deletion failed"))
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("PhotoRepository", "Ошибка удаления из Cloudinary: ${e.message}", e)
+                        withContext(Dispatchers.Main) {
+                            onFailure(e)
+                        }
                     }
-
-                } catch (e: Exception) {
-                    Log.e("PhotoRepository", "Ошибка удаления из Cloudinary: ${e.message}")
-                    onFailure(e)
                 }
             }
-            .addOnFailureListener { onFailure(it) }
+            .addOnFailureListener { e ->
+                Log.e("PhotoRepository", "Ошибка удаления из Firebase", e)
+                onFailure(e)
+            }
     }
+
 
 
     fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {

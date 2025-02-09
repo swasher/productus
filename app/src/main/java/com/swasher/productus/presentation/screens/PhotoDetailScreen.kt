@@ -26,6 +26,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.Alignment
 
 import com.swasher.productus.data.model.Photo
 import com.swasher.productus.data.repository.PhotoRepository
@@ -49,7 +50,8 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
                 title = {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(folderName)
                         IconButton(onClick = { showDeleteDialog = true }) { // ✅ Кнопка удаления
