@@ -13,6 +13,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
+fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): String {
+    return imageUrl.replace("/upload/", "/upload/w_${width},h_${height},c_fill/")
+}
+
+
 class PhotoRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val photosCollection = firestore.collection("photos")
@@ -27,6 +32,8 @@ class PhotoRepository {
             }
             .addOnFailureListener { onFailure(it) }
     }
+
+
 
 
     // Получаем фото внутри конкретной папки
@@ -48,25 +55,26 @@ class PhotoRepository {
     }
 
     // Сохраняем фото в конкретную коллекцию (папку)
-    fun savePhoto(folder: String, imageUrl: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        val publicId = imageUrl.substringAfterLast("/") // 📌 Извлекаем `vivzby7juh6ph5g4nywq.jpg`
-            .substringBeforeLast(".") // 📌 Убираем расширение `.jpg`
-
-        val photo = Photo(
-            id = publicId,
-            imageUrl = imageUrl,
-            folder = folder,
-            comment = "",
-            tags = emptyList(),
-            createdAt = System.currentTimeMillis()
-        )
-
-        firestore.collection("Folders").document(folder).collection("Photos")
-            .document(publicId)
-            .set(photo)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onFailure(it) }
-    }
+    // possible deprecated
+//    fun savePhoto(folder: String, imageUrl: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+//        val publicId = imageUrl.substringAfterLast("/") // 📌 Извлекаем `vivzby7juh6ph5g4nywq.jpg`
+//            .substringBeforeLast(".") // 📌 Убираем расширение `.jpg`
+//
+//        val photo = Photo(
+//            id = publicId,
+//            imageUrl = imageUrl,
+//            folder = folder,
+//            comment = "",
+//            tags = emptyList(),
+//            createdAt = System.currentTimeMillis()
+//        )
+//
+//        firestore.collection("Folders").document(folder).collection("Photos")
+//            .document(publicId)
+//            .set(photo)
+//            .addOnSuccessListener { onSuccess() }
+//            .addOnFailureListener { onFailure(it) }
+//    }
 
 
 

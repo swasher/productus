@@ -43,8 +43,10 @@ import androidx.compose.material.icons.filled.Delete
 
 
 import com.swasher.productus.data.model.Photo
+import com.swasher.productus.data.repository.getThumbnailUrl
 import com.swasher.productus.presentation.camera.CameraActivity
 import com.swasher.productus.presentation.viewmodel.PhotoViewModel
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,7 +127,8 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(photos) { photo ->
-                        PhotoItem(photo=photo, folderName, navController)
+                        val thumbnailUrl = getThumbnailUrl(photo.imageUrl)
+                        PhotoItem(photo=photo, folderName, thumbnailUrl, navController)
                     }
                 }
             }
@@ -136,7 +139,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
 
 @Composable
-fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
+fun PhotoItem(photo: Photo, folderName: String, thumbnailUrl: String, navController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -147,12 +150,14 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Image(
-            painter = rememberAsyncImagePainter(photo.imageUrl),
-            contentDescription = "Фото",
+            painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl)),
+            contentDescription = "Превью фото",
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
+                // todo !!!
+                // .clickable { navController.navigate("photoDetail/${photo.id}") }
         )
     }
 }
