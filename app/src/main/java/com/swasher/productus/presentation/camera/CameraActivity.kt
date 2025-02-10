@@ -3,6 +3,7 @@ package com.swasher.productus.presentation.camera
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.Manifest
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -23,6 +24,7 @@ import com.cloudinary.android.callback.UploadCallback
 import com.cloudinary.android.callback.ErrorInfo
 import com.swasher.productus.BuildConfig
 import com.swasher.productus.R
+import com.swasher.productus.data.repository.PhotoRepository
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -128,6 +130,12 @@ class CameraActivity : ComponentActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
+    private fun playShutterSound() {
+        val mediaPlayer = MediaPlayer.create(this, R.raw.camera_shutter) // 📌 Подключаем звук
+        mediaPlayer.setOnCompletionListener { it.release() } // ✅ Освобождаем ресурс после воспроизведения
+        mediaPlayer.start()
+    }
+
     private fun takePhoto() {
         val imageCapture = imageCapture ?: run {
             Log.e("CameraActivity", "Ошибка: imageCapture = null")
@@ -146,9 +154,11 @@ class CameraActivity : ComponentActivity() {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val savedUri = Uri.fromFile(photoFile)
                     Log.d("CameraActivity", "✅ Фото сохранено: $savedUri")
+                    playShutterSound()
+                    val folderName = intent.getStringExtra("folderName") ?: "Unsorted"
 
                     // ✅ Загружаем в Cloudinary
-                    uploadToCloudinary(savedUri)
+                    uploadToCloudinary(savedUri, folderName)
                 }
 
                 override fun onError(exception: ImageCaptureException) {
@@ -158,13 +168,13 @@ class CameraActivity : ComponentActivity() {
         )
     }
 
-    private fun uploadToCloudinary(uri: Uri) {
-        val uploadFolder = BuildConfig.CLOUDINARY_UPLOAD_DIR // ✅ Папка из `BuildConfig`
-        Log.d("CameraActivity", "🌍 Начинаем загрузку фото в Cloudinary: $uri, в папку $uploadFolder")
+    private fun uploadToCloudinary(uri: Uri, folderName: String) {
+        val cloudinaryFolder = BuildConfig.CLOUDINARY_UPLOAD_DIR
+        Log.d("CameraActivity", "🌍 Начинаем загрузку фото в Cloudinary: $uri, в папку $cloudinaryFolder")
 
         MediaManager.get().upload(uri)
             .option("resource_type", "image")
-            .option("folder", uploadFolder)
+            .option("folder", cloudinaryFolder)
             .callback(object : UploadCallback {
                 override fun onStart(requestId: String) {}
                 override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {}
@@ -172,6 +182,8 @@ class CameraActivity : ComponentActivity() {
                 override fun onSuccess(requestId: String, resultData: Map<*, *>) {
                     val imageUrl = resultData["secure_url"] as String
                     Log.d("CameraActivity", "✅ Фото загружено в Cloudinary: $imageUrl")
+
+                    savePhotoToFirebase(folderName, imageUrl)
 
                     // ✅ После загрузки можно закрыть камеру
                     finish()
@@ -184,6 +196,17 @@ class CameraActivity : ComponentActivity() {
                 override fun onReschedule(requestId: String, error: ErrorInfo) {}
             })
             .dispatch()
+    }
+
+
+    private fun savePhotoToFirebase(folder: String, imageUrl: String) {
+        val repository = PhotoRepository()
+        repository.savePhoto(
+            folder = folder,
+            imageUrl = imageUrl,
+            onSuccess = { Log.d("CameraActivity", "✅ Фото сохранено в Firebase!") },
+            onFailure = { Log.e("CameraActivity", "❌ Ошибка сохранения фото в Firebase", it) }
+        )
     }
 
 

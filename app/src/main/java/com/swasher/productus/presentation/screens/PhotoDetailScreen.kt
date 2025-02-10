@@ -5,6 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -29,6 +31,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 
 import com.swasher.productus.data.model.Photo
 import com.swasher.productus.data.repository.PhotoRepository
@@ -36,9 +39,9 @@ import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
 
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.swasher.productus.data.repository.getThumbnailUrl
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,7 +49,18 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
 
     var comment by remember { mutableStateOf(photo.comment) }
     var tags by remember { mutableStateOf(photo.tags.joinToString(", ")) }
+    var name by remember { mutableStateOf(photo.name) }
+    var country by remember { mutableStateOf(photo.country) }
+    var store by remember { mutableStateOf(photo.store) }
+    var price by remember { mutableStateOf(photo.price.toString()) }
     var showDeleteDialog by remember { mutableStateOf(false) } // ✅ Состояние диалога удаления
+
+    val imeInsets = WindowInsets.ime // ✅ Получаем отступ для клавиатуры
+    val keyboardPadding = imeInsets.asPaddingValues() // ✅ Преобразуем в PaddingValues
+
+    val screenWidth = LocalConfiguration.current.screenWidthDp // 📌 Получаем ширину экрана в dp
+    val thumbnailUrl = getThumbnailUrl(photo.imageUrl, screenWidth * 1, 200) // 📌 Загружаем 2x для чёткости
+
 
     Scaffold(
         topBar = {
@@ -75,39 +89,33 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(keyboardPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Image(
-                painter = rememberAsyncImagePainter(photo.imageUrl),
+                painter = rememberAsyncImagePainter(thumbnailUrl),
                 contentDescription = "Фото",
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
+                    .height(200.dp)
                     .clickable {
                         val encodedUrl = URLEncoder.encode(photo.imageUrl, StandardCharsets.UTF_8.toString())
                         navController.navigate("fullScreenPhoto/$encodedUrl")
                     }
             )
-            Text("Категория: $folderName")
 
-            Text("Комментарий:")
-            OutlinedTextField(
-                value = comment,
-                onValueChange = { comment = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Text("Теги (через запятую):")
-            OutlinedTextField(
-                value = tags,
-                onValueChange = { tags = it },
-                modifier = Modifier.fillMaxWidth()
-            )
+            OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Название") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = comment, onValueChange = { comment = it }, label = { Text("Комментарий:") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = tags, onValueChange = { tags = it }, label = { Text("Теги (через запятую):") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Цена") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = store, onValueChange = { store = it }, label = { Text("Магазин") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = country, onValueChange = { country = it }, label = { Text("Страна") }, modifier = Modifier.fillMaxWidth())
 
             Button(
                 onClick = {
-                    viewModel.updatePhoto(folderName, photo.id, comment, tags.split(",").map { it.trim() })
+                    viewModel.updatePhoto(folderName, photo.id, comment,  tags.split(","),  name, country, store, price.toFloat())
                     navController.popBackStack()
                 },
                 modifier = Modifier.fillMaxWidth()

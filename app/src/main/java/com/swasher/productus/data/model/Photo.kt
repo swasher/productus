@@ -6,5 +6,11 @@ data class Photo(
     val comment: String = "",
     val tags: List<String> = emptyList(),
     val folder: String = "Unsorted",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+
+    // ✅ Новые поля
+    val name: String = "",
+    val country: String = "",
+    val store: String = "",
+    val price: Float = 0.0f
 )

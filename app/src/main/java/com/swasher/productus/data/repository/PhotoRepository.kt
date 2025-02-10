@@ -1,3 +1,12 @@
+/*
+Отвечает за работу с данными. Работает с Firebase и Cloudinary. Он не знает про UI.
+
+✅ Достаёт данные из Firestore
+✅ Загружает фото в Cloudinary
+✅ Обновляет Firestore
+✅ Удаляет фото из Cloudinary
+*/
+
 package com.swasher.productus.data.repository
 
 import android.os.Handler
@@ -5,6 +14,7 @@ import android.os.Looper
 import android.util.Log
 import com.cloudinary.android.MediaManager
 import com.cloudinary.utils.ObjectUtils
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.swasher.productus.data.model.Photo
 import kotlinx.coroutines.CoroutineScope
@@ -14,7 +24,9 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 
 fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): String {
-    return imageUrl.replace("/upload/", "/upload/w_${width},h_${height},c_fill/")
+    // c_auto - автоматески подгоняет под размер
+    // g_auto - gravity, в центрирует по сюжету
+    return imageUrl.replace("/upload/", "/upload/w_${width},h_${height},c_auto,g_auto/")
 }
 
 
@@ -53,27 +65,74 @@ class PhotoRepository {
     }
 
     // Сохраняем фото в конкретную коллекцию (папку)
-    // possible deprecated
-//    fun savePhoto(folder: String, imageUrl: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-//        val publicId = imageUrl.substringAfterLast("/") // 📌 Извлекаем `vivzby7juh6ph5g4nywq.jpg`
-//            .substringBeforeLast(".") // 📌 Убираем расширение `.jpg`
-//
-//        val photo = Photo(
-//            id = publicId,
-//            imageUrl = imageUrl,
-//            folder = folder,
-//            comment = "",
-//            tags = emptyList(),
-//            createdAt = System.currentTimeMillis()
-//        )
-//
-//        firestore.collection("Folders").document(folder).collection("Photos")
-//            .document(publicId)
-//            .set(photo)
-//            .addOnSuccessListener { onSuccess() }
-//            .addOnFailureListener { onFailure(it) }
-//    }
+    // СОХРАНЕНИЕ используется для новой фотки! (для обновления есть updatePhoto)
+    fun savePhoto(
+        folder: String,
+        imageUrl: String,
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val publicId = imageUrl.substringAfterLast("/") // 📌 Извлекаем `vivzby7juh6ph5g4nywq.jpg`
+            .substringBeforeLast(".") // 📌 Убираем расширение `.jpg`
 
+        val photo = Photo(
+            id = publicId,
+            imageUrl = imageUrl,
+            folder = folder,
+            comment = "",
+            tags = emptyList(),
+            createdAt = System.currentTimeMillis(),
+
+            // ✅ Новые поля
+            name = "",
+            country = "",
+            store = "",
+            price = 0f
+        )
+
+        firestore.collection("Folders").document(folder).collection("Photos")
+            .document(publicId)
+            .set(photo)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+
+    fun updatePhoto(
+        folder: String,
+        photoId: String,
+        comment: String,
+        tags: List<String>,
+
+        name: String,
+        country: String,
+        store: String,
+        price: Float,
+
+        onSuccess: () -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        val updates = mutableMapOf<String, Any>(
+            "name" to name,
+            "comment" to comment,
+            "tags" to tags,
+            "country" to country,
+            "store" to store,
+            "price" to price,
+        )
+
+//        if (tags.isEmpty()) {
+//            updates["tags"] = FieldValue.delete()
+//        } else {
+//            updates["tags"] = tags
+//        }
+
+        firestore.collection("Folders").document(folder).collection("Photos")
+            .document(photoId)
+            .update(updates)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
+    }
 
 
     fun observePhotos(folder: String, onUpdate: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
@@ -89,6 +148,7 @@ class PhotoRepository {
                 onUpdate(photos)
             }
     }
+
 
 
     fun deletePhotosFromCloudinary(photoUrls: List<String>, onComplete: () -> Unit) {
@@ -176,17 +236,6 @@ class PhotoRepository {
 
 
 
-    fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        val updates = mapOf(
-            "comment" to comment,
-            "tags" to tags
-        )
 
-        firestore.collection("Folders").document(folder).collection("Photos")
-            .document(photoId)
-            .update(updates)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onFailure(it) }
-    }
 
 }

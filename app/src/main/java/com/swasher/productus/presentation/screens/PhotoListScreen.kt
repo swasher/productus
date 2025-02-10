@@ -64,7 +64,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
     // Устанавливаем текущую папку
     LaunchedEffect(folderName) {
-//        viewModel.loadPhotos(folderName)
+    // viewModel.loadPhotos(folderName)
         viewModel.startObservingPhotos(folderName)
     }
 
@@ -96,6 +96,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
             modifier = Modifier.padding(padding).padding(16.dp)
         ) {
             // Фильтр по тегам
+
             LazyRow {
                 items(allTags) { tag ->
                     Button(
@@ -107,7 +108,10 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                             containerColor = if (selectedTag == tag) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                             contentColor = if (selectedTag == tag) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                         ),
-                        border = if (selectedTag == tag) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                        border = if (selectedTag == tag) null else BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline
+                        ),
                         elevation = ButtonDefaults.buttonElevation(
                             defaultElevation = 2.dp,
                             pressedElevation = 4.dp
@@ -118,7 +122,6 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                     }
                 }
             }
-
 
             if (photos.isEmpty()) {
                 Text("Нет загруженных фото", modifier = Modifier.padding(16.dp))
@@ -149,16 +152,39 @@ fun PhotoItem(photo: Photo, folderName: String, thumbnailUrl: String, navControl
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Image(
-            painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl)),
-            contentDescription = "Превью фото",
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                // todo !!!
-                // .clickable { navController.navigate("photoDetail/${photo.id}") }
-        )
+        Column {
+            Text(photo.name, modifier = Modifier.padding(6.dp), style = MaterialTheme.typography.titleSmall)
+            Image(
+                painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl)),
+                contentDescription = "Превью фото",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    // todo !!!
+                    // .clickable { navController.navigate("photoDetail/${photo.id}") }
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp), // Добавляем отступы
+                horizontalArrangement = Arrangement.SpaceBetween // Распределяем пространство между элементами
+            ) {
+                Text(
+                    text = photo.store,
+                    style = MaterialTheme.typography.labelSmall // Стиль текста
+                )
+                Text(
+                    text = "${photo.price}€", // Форматируем цену
+                    style = MaterialTheme.typography.labelSmall // Стиль текста
+                )
+            }
+
+        }
+
+
+
     }
 }
 

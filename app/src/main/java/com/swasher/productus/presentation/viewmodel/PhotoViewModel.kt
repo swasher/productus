@@ -1,3 +1,12 @@
+/*
+Управляет UI-логикой. Знает про UI, но не знает, как устроена Firestore или Cloudinary.
+
+Что делает PhotoViewModel:
+✅ Управляет UI-данными
+✅ Обрабатывает события пользователя (например, обновление фото)
+✅ Вызывает PhotoRepository, но не знает, как тот работает
+*/
+
 package com.swasher.productus.presentation.viewmodel
 
 import android.util.Log
@@ -50,36 +59,6 @@ class PhotoViewModel : ViewModel() {
             .addOnSuccessListener { loadFolders() }
     }
 
-
-//    fun renameFolder(oldName: String, newName: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-//        val oldFolderRef = firestore.collection("Folders").document(oldName)
-//        val newFolderRef = firestore.collection("Folders").document(newName)
-//
-//        oldFolderRef.collection("Photos").get()
-//            .addOnSuccessListener { snapshot ->
-//                val batch = firestore.batch()
-//
-//                snapshot.documents.forEach { doc ->
-//                    val newDocRef = newFolderRef.collection("Photos").document(doc.id)
-//                    // batch.set(newDocRef, doc.data ?: emptyMap()) // ✅ Копируем фото в новую папку
-//                    // change by Claude:
-//                    // batch.set(newDocRef, doc.data ?: emptyMap<String, Any>())
-//
-//                    batch.set(newDocRef, doc.data ?: emptyMap<String, Any>())
-//                    batch.delete(doc.reference) // ✅ Удаляем из старой
-//                }
-//
-//                batch.commit().addOnSuccessListener {
-//                    oldFolderRef.delete() // ✅ Удаляем старую папку
-//                        .addOnSuccessListener {
-//                            loadFolders() // ✅ Обновляем список папок
-//                            onSuccess()
-//                        }
-//                        .addOnFailureListener { onFailure(it) }
-//                }.addOnFailureListener { onFailure(it) }
-//            }
-//            .addOnFailureListener { onFailure(it) }
-//    }
 
     fun renameFolder(oldName: String, newName: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val oldFolderRef = firestore.collection("Folders").document(oldName)
@@ -183,12 +162,18 @@ class PhotoViewModel : ViewModel() {
         )
     }
 
-    fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>) {
+    fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, name: String, country: String, store: String, price: Float) {
+        val cleanedTags = tags.map { it.trim() }.filter { it.isNotBlank() } // ✅ Убираем пустые строки
+
         repository.updatePhoto(
             folder = folder, // 📌 Передаём имя коллекции
             photoId = photoId,
             comment = comment,
-            tags = tags,
+            tags = cleanedTags,
+            name = name,
+            country = country,
+            store = store,
+            price = price,
             onSuccess = { loadPhotos(folder) }, // 📌 Загружаем фото только из нужной папки
             onFailure = { it.printStackTrace() }
         )
