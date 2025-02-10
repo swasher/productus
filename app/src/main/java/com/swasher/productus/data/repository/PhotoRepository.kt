@@ -34,8 +34,6 @@ class PhotoRepository {
     }
 
 
-
-
     // Получаем фото внутри конкретной папки
     fun getPhotos(folder: String, onSuccess: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
         Log.d("PhotoRepository", "Fetching photos for folder: $folder")
@@ -150,7 +148,7 @@ class PhotoRepository {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
 
-                         val deleteResult = MediaManager.get().cloudinary.uploader().destroy(publicId, null)
+                        val deleteResult = MediaManager.get().cloudinary.uploader().destroy(publicId, null)
                         if (deleteResult != null && deleteResult.get("result") == "ok") {
                             Log.d("PhotoRepository", "Фото удалено из Cloudinary: $publicId, result: $deleteResult")
                             withContext(Dispatchers.Main) {

@@ -76,11 +76,6 @@ class MainActivity : ComponentActivity() {
                             val photos = photosState.value // Получаем List<Photo>
                             val photo = photos.find { it.id == photoId } // Получаем фото из списка
 
-                            Log.d("MainActivity", "FolderName: $folderName")
-                            Log.d("MainActivity", "PhotoId: $photoId")
-                            Log.d("MainActivity", "Photos: $photos")
-                            Log.d("MainActivity", "Photo: $photo")
-
                             if (photo != null) {
                                 PhotoDetailScreen(navController, folderName, photo)
                             } else {
@@ -98,43 +93,43 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-@Composable
-fun MainScreen(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(text = "Hello Android!", modifier = Modifier.padding(bottom = 16.dp))
-        CameraButton() // Добавляем кнопку для открытия CameraActivity
-    }
-}
-
-
-
-@Composable
-fun CameraButton() {
-    val context = LocalContext.current
-
-    Button(
-        onClick = {
-            // Создаём Intent для запуска CameraActivity
-            val intent = Intent(context, CameraActivity::class.java)
-            context.startActivity(intent)
-        },
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text("Открыть камеру")
-    }
-}
+// DEPRECATED
+//@Composable
+//fun MainScreen(modifier: Modifier = Modifier) {
+//    Column(
+//        modifier = modifier
+//            .fillMaxSize()
+//            .padding(16.dp),
+//        verticalArrangement = Arrangement.Center
+//    ) {
+//        Text(text = "Hello Android!", modifier = Modifier.padding(bottom = 16.dp))
+//        CameraButton() // Добавляем кнопку для открытия CameraActivity
+//    }
+//}
 
 
-@Preview(showBackground = true)
-@Composable
-fun MainScreenPreview() {
-    ProductusTheme {
-        MainScreen()
-    }
-}
+// deprecated
+//@Composable
+//fun CameraButton() {
+//    val context = LocalContext.current
+//
+//    Button(
+//        onClick = {
+//            // Создаём Intent для запуска CameraActivity
+//            val intent = Intent(context, CameraActivity::class.java)
+//            context.startActivity(intent)
+//        },
+//        modifier = Modifier.fillMaxWidth()
+//    ) {
+//        Text("Открыть камеру")
+//    }
+//}
+
+// DEPRECATED
+//@Preview(showBackground = true)
+//@Composable
+//fun MainScreenPreview() {
+//    ProductusTheme {
+//        MainScreen()
+//    }
+//}
