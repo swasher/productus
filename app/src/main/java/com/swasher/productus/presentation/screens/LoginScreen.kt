@@ -19,12 +19,22 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -32,6 +42,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.swasher.productus.R
 import com.swasher.productus.presentation.viewmodel.AuthViewModel
+
+
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewModel()) {
@@ -51,6 +63,16 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
         }
     }
 
+    val currentUser by viewModel.currentUser.collectAsState()
+
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            navController.navigate("folders") {
+                popUpTo("loginScreen") { inclusive = true }
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         content = { padding ->
@@ -62,6 +84,26 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text(
+                    text = "Productus",
+                    style = TextStyle(
+                        fontFamily = FontFamily(Font(R.font.montserrat_bold)),
+                        fontSize = 36.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = androidx.compose.ui.graphics.Color.Red
+                    )
+                )
+                Text(
+                    text = "Productus",
+                    style = TextStyle(
+                        fontFamily = FontFamily(Font(R.font.playfair_display_bold)),
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                        color = Color(0xFF03DAC6)
+                        // fontStyle = FontStyle.Italic
+                    )
+                )
                 Image(
                     painter = painterResource(id = R.drawable.login_image),
                     contentDescription = "Login Illustration",

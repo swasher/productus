@@ -40,6 +40,7 @@ import com.swasher.productus.presentation.screens.PhotoDetailScreen
 import com.swasher.productus.presentation.screens.SearchScreen
 import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 import com.swasher.productus.presentation.screens.LoginScreen
+import com.swasher.productus.presentation.screens.MainTopBar
 import com.swasher.productus.presentation.viewmodel.AuthViewModel
 
 
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     // topBar = { TopAppBar(title = { Text("My Productus Software") }) },
+                    topBar = { MainTopBar(navController) },
                 ) { innerPadding ->
 
                     NavHost(
