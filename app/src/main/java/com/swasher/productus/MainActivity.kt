@@ -56,7 +56,11 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     // topBar = { TopAppBar(title = { Text("My Productus Software") }) },
-                    topBar = { MainTopBar(navController) },
+                    topBar = {
+                        if (currentUser != null) {
+                            MainTopBar(navController, authViewModel)
+                        }
+                    },
                 ) { innerPadding ->
 
                     NavHost(
