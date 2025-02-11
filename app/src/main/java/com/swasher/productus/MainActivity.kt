@@ -37,6 +37,7 @@ import com.swasher.productus.presentation.camera.CameraActivity
 import com.swasher.productus.presentation.screens.FolderScreen
 import com.swasher.productus.presentation.screens.PhotoListScreen
 import com.swasher.productus.presentation.screens.PhotoDetailScreen
+import com.swasher.productus.presentation.screens.SearchScreen
 import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,6 +86,9 @@ class MainActivity : ComponentActivity() {
                         composable("fullScreenPhoto/{imageUrl}") { backStackEntry ->
                             val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
                             FullScreenPhotoScreen(navController, imageUrl)
+                        }
+                        composable("searchScreen") {
+                            SearchScreen(navController)
                         }
                     }
                 }

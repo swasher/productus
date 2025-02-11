@@ -64,6 +64,17 @@ class PhotoRepository {
             }
     }
 
+    // Загружаем всю коллекцию локально для полнотекстового поиска
+    fun getAllPhotos(onSuccess: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
+        firestore.collectionGroup("Photos")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val photos = snapshot.documents.mapNotNull { it.toObject(Photo::class.java) }
+                onSuccess(photos)
+            }
+            .addOnFailureListener { onFailure(it) }
+    }
+
     // Сохраняем фото в конкретную коллекцию (папку)
     // СОХРАНЕНИЕ используется для новой фотки! (для обновления есть updatePhoto)
     fun savePhoto(

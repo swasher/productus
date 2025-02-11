@@ -17,6 +17,7 @@ import com.swasher.productus.data.repository.PhotoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -26,23 +27,52 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QuerySnapshot
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 
 class PhotoViewModel : ViewModel() {
     private val repository = PhotoRepository()
     private val firestore = FirebaseFirestore.getInstance()
 
+    // для отбора фото внутри папки
     private val _photos = MutableStateFlow<List<Photo>>(emptyList())
     val photos: StateFlow<List<Photo>> = _photos.asStateFlow()
 
-    private val _filterTag = MutableStateFlow<String?>(null) // Текущий выбранный тег
+    // для фильтрации по тегам внутри папки
+    private val _filterTag = MutableStateFlow<String?>(null)
     val filterTag = _filterTag.asStateFlow()
 
-    private val _filterFolder = MutableStateFlow<String?>(null) // Текущая папка
+    // непонятно для чего, возможно не используется
+    private val _filterFolder = MutableStateFlow<String?>(null)
     val filterFolder = _filterFolder.asStateFlow()
 
+    // для обновления списка папок после добавления или удаления папки
     private val _folders = MutableStateFlow<List<String>>(emptyList())
     val folders = _folders.asStateFlow()
+
+    // поиск по предварительно скачанной коллекции Firebase
+    private val _allPhotos = MutableStateFlow<List<Photo>>(emptyList()) // ✅ Все фото в памяти
+    val allPhotos: StateFlow<List<Photo>> = _allPhotos.asStateFlow()
+
+    // для глобального поиска
+    private val _searchResults = MutableStateFlow<List<Photo>>(emptyList())
+    val searchResults: StateFlow<List<Photo>> = _searchResults.asStateFlow()
+
+    init {
+        loadAllPhotos() // ✅ Загружаем коллекцию при запуске
+    }
+
+    private fun loadAllPhotos() {
+        repository.getAllPhotos(
+            onSuccess = { _allPhotos.value = it },
+            onFailure = { it.printStackTrace() }
+        )
+    }
 
     fun loadFolders() {
         repository.getFolders(
@@ -145,11 +175,6 @@ class PhotoViewModel : ViewModel() {
         )
     }
 
-
-//    init {
-//        observePhotos()
-//    }
-
     fun startObservingPhotos(folder: String) {
         observePhotos(folder)
     }
@@ -203,5 +228,78 @@ class PhotoViewModel : ViewModel() {
     fun setFilterFolder(folder: String?) {
         _filterFolder.value = folder
     }
+
+    fun clearSearchResults() {
+        _searchResults.value = emptyList()
+    }
+
+    // Вариант с возвратом Flow (через запрос к Firestore)
+    /*
+    suspend fun searchPhotos(query: String): Flow<List<Photo>> = flow {
+        if (query.isBlank()) {
+            emit(emptyList<Photo>()) // Если строка пустая, очищаем список
+            return@flow
+        }
+
+        firestore.collectionGroup("Photos") // 📌 Ищем во всех папках
+            .orderBy("name") // 🔍 Улучшает сортировку (но требует индекса)
+            .startAt(query)
+            .endAt(query + "\uf8ff")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val photos = snapshot.documents.mapNotNull { it.toObject(Photo::class.java) }
+                emit(photos) // ✅ Отправляем список найденных фото
+            }
+            .addOnFailureListener { emit(emptyList<Photo>()) }
+    }.debounce(300) // ⏳ Добавляем задержку 300ms для оптимизации
+    */
+
+
+    // Вариант через запрос к Firestore
+    /*
+    // TODO добавить .debounce(300)
+    suspend fun searchPhotos(query: String) {
+        if (query.isBlank()) {
+            _searchResults.value = emptyList<Photo>() // ✅ Если строка пустая, очищаем список
+            return
+        }
+
+        Log.d("PhotoViewModel", "Поиск: $query")
+
+        try {
+            val snapshot: QuerySnapshot = withContext(Dispatchers.IO) {
+                firestore.collectionGroup("Photos")
+                    .orderBy("name")
+                    .startAt(query)
+                    .endAt(query + "\uf8ff")
+                    .get()
+                    .await()
+            }
+            _searchResults.value = snapshot.documents.mapNotNull { it.toObject(Photo::class.java) }
+            Log.d("PhotoViewModel", "Найдено фото: ${_searchResults.value.size}")
+        } catch (e: Exception) {
+            _searchResults.value = emptyList()
+            Log.e("PhotoViewModel", "Ошибка поиска: ${e.message}")
+        }
+    }
+    */
+
+    // Вариант через предзагруженную коллекцию Firestore
+    fun searchPhotos(query: String) {
+        if (query.isBlank()) {
+            _searchResults.value = emptyList() // ✅ Если строка пустая, сбрасываем поиск
+            return
+        }
+
+        val lowerQuery = query.lowercase()
+
+        _searchResults.value = _allPhotos.value.filter { photo ->
+            photo.name.lowercase().contains(lowerQuery) ||
+            photo.comment.lowercase().contains(lowerQuery) ||
+            photo.tags.any { it.lowercase().contains(lowerQuery) }
+        }
+    }
+
+
 
 }

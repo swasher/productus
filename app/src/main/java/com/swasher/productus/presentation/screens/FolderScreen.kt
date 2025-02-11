@@ -1,6 +1,5 @@
 package com.swasher.productus.presentation.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,7 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -32,6 +31,7 @@ fun FolderScreen(navController: NavController, viewModel: PhotoViewModel = viewM
     var folderToDelete by remember { mutableStateOf<String?>(null) } // ✅ Состояние выбранной папки
     var showDeleteDialog by remember { mutableStateOf(false) } // ✅ Состояние диалога удаления категории
     var showNewFolderDialog by remember { mutableStateOf(false) }    // dialog для создания категории
+    var searchQuery by remember { mutableStateOf("") } // ✅ Локальное состояние поиска
 
     // 📌 Загружаем список папок при запуске экрана
     LaunchedEffect(Unit) {
@@ -48,39 +48,32 @@ fun FolderScreen(navController: NavController, viewModel: PhotoViewModel = viewM
     ) { padding ->
 
 
-
-
-//        Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-//            if (folders.isEmpty()) {
-//                Text("Нет созданных папок", modifier = Modifier.padding(16.dp))
-//            } else {
-//                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-//                    items(folders) { folder ->
-//                        Row(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .clickable { navController.navigate("photoList/$folder") },
-//                            horizontalArrangement = Arrangement.SpaceBetween
-//                        ) {
-//                            Text(text = folder, modifier = Modifier.padding(16.dp))
-//
-//                            IconButton(onClick = {
-//                                folderToDelete = folder // ✅ Сохраняем папку, которую хотим удалить
-//                                showDeleteDialog = true // ✅ Показываем диалог
-//                            }) {
-//                                Icon(Icons.Default.Delete, contentDescription = "Удалить папку")
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-
-
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
             if (folders.isEmpty()) {
                 Text("Нет созданных папок", modifier = Modifier.padding(16.dp))
             } else {
+
+                /*
+                * ПОЛЕ ДЛЯ ПОИСКА
+                */
+                Column {
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = {searchQuery  = it },
+                        label = { Text("Поиск...") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    navController.navigate("searchScreen")
+                                }
+                            },
+//                            .clickable {
+//                                navController.navigate("searchScreen")
+//                            },
+                        enabled = true // Делаем поле неактивным для ввода (если clickable вариант)
+                )}
+
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(folders) { folder ->
                         Card(

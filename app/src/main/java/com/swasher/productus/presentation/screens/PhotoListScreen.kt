@@ -37,7 +37,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 
@@ -76,7 +78,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
                 }
             )
@@ -88,7 +90,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                 }
                 navController.context.startActivity(intent)
             }) {
-                Icon(Icons.Default.Add, contentDescription = "Добавить фото")
+                Icon(Icons.Default.AddAPhoto, contentDescription = "Добавить фото")
             }
         }
     ) { padding ->
@@ -131,7 +133,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                 ) {
                     items(photos) { photo ->
                         val thumbnailUrl = getThumbnailUrl(photo.imageUrl)
-                        PhotoItem(photo=photo, folderName, thumbnailUrl, navController)
+                        PhotoItem(photo=photo, folderName, navController)
                     }
                 }
             }
@@ -142,7 +144,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
 
 @Composable
-fun PhotoItem(photo: Photo, folderName: String, thumbnailUrl: String, navController: NavController) {
+fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -161,8 +163,6 @@ fun PhotoItem(photo: Photo, folderName: String, thumbnailUrl: String, navControl
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    // todo !!!
-                    // .clickable { navController.navigate("photoDetail/${photo.id}") }
             )
 
             Row(
