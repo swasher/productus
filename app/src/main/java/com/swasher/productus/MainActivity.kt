@@ -39,6 +39,9 @@ import com.swasher.productus.presentation.screens.PhotoListScreen
 import com.swasher.productus.presentation.screens.PhotoDetailScreen
 import com.swasher.productus.presentation.screens.SearchScreen
 import com.swasher.productus.presentation.viewmodel.PhotoViewModel
+import com.swasher.productus.presentation.screens.LoginScreen
+import com.swasher.productus.presentation.viewmodel.AuthViewModel
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -47,15 +50,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             ProductusTheme {
                 val navController = rememberNavController()
+                val authViewModel: AuthViewModel = viewModel()
+                val currentUser by authViewModel.currentUser.collectAsState()
 
                 Scaffold(
                     // topBar = { TopAppBar(title = { Text("My Productus Software") }) },
                 ) { innerPadding ->
+
                     NavHost(
                         navController = navController,
-                        startDestination = "folders",
+                        startDestination = if (currentUser != null) "folders" else "loginScreen",
                         modifier = Modifier.padding(innerPadding)
                     ) {
+                        composable("loginScreen") {
+                            LoginScreen(navController)
+                        }
                         composable("folders") {
                             FolderScreen(navController)
                         }
@@ -96,44 +105,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-// DEPRECATED
-//@Composable
-//fun MainScreen(modifier: Modifier = Modifier) {
-//    Column(
-//        modifier = modifier
-//            .fillMaxSize()
-//            .padding(16.dp),
-//        verticalArrangement = Arrangement.Center
-//    ) {
-//        Text(text = "Hello Android!", modifier = Modifier.padding(bottom = 16.dp))
-//        CameraButton() // Добавляем кнопку для открытия CameraActivity
-//    }
-//}
-
-
-// deprecated
-//@Composable
-//fun CameraButton() {
-//    val context = LocalContext.current
-//
-//    Button(
-//        onClick = {
-//            // Создаём Intent для запуска CameraActivity
-//            val intent = Intent(context, CameraActivity::class.java)
-//            context.startActivity(intent)
-//        },
-//        modifier = Modifier.fillMaxWidth()
-//    ) {
-//        Text("Открыть камеру")
-//    }
-//}
-
-// DEPRECATED
-//@Preview(showBackground = true)
-//@Composable
-//fun MainScreenPreview() {
-//    ProductusTheme {
-//        MainScreen()
-//    }
-//}

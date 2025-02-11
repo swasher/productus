@@ -38,7 +38,7 @@ class AuthRepository {
                         "photoUrl" to (user.photoUrl?.toString() ?: "")
                     )
                 )
-                firestore.collection("Folders-${user.uid}").document("meta").set(mapOf("createdAt" to System.currentTimeMillis()))
+                firestore.collection("User-${user.uid}").document("meta").set(mapOf("createdAt" to System.currentTimeMillis()))
             }
         }
     }
