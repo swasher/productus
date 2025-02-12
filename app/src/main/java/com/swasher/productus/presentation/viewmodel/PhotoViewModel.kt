@@ -151,6 +151,7 @@ class PhotoViewModel : ViewModel() {
         )
     }
 
+    // TODO startObservingPhotos и observePhotos наверное надо объеденить(спросить МОСК)
     fun startObservingPhotos(folder: String) {
         observePhotos(folder)
     }

@@ -95,6 +95,7 @@ class MainActivity : ComponentActivity() {
                             val photo = photos.find { it.id == photoId } // Получаем фото из списка
 
                             if (photo != null) {
+                                Log.d("PhotoDetailScreen", "Photo found: $photo")
                                 PhotoDetailScreen(navController, folderName, photo)
                             } else {
                                 Text("Фото не найдено")

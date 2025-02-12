@@ -134,7 +134,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(photos) { photo ->
-                        val thumbnailUrl = getThumbnailUrl(photo.imageUrl)
+                        // val thumbnailUrl = getThumbnailUrl(photo.imageUrl)
                         PhotoItem(photo=photo, folderName, navController)
                     }
                 }

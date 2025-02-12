@@ -22,7 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
+import com.swasher.productus.BuildConfig
 
 fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): String {
     // c_auto - автоматески подгоняет под размер
@@ -149,12 +149,15 @@ class PhotoRepository {
         val oldFolderRef = firestore.collection(userFolder()).document(oldName)
         val newFolderRef = firestore.collection(userFolder()).document(newName)
 
+        Log.d("PhotoRepository", "Переименование папки: $oldName в $newName")
+
         // ✅ Создаём новую папку (метаданные)
         newFolderRef.set(mapOf("createdAt" to System.currentTimeMillis()))
             .addOnSuccessListener {
                 oldFolderRef.collection("Photos").get()
                     .addOnSuccessListener { snapshot ->
                         val batch = firestore.batch()
+                        Log.d("PhotoRepository", "Snapshot: $snapshot")
 
                         snapshot.documents.forEach { doc ->
                             val newDocRef = newFolderRef.collection("Photos").document(doc.id)
@@ -203,7 +206,7 @@ class PhotoRepository {
 //            updates["tags"] = tags
 //        }
 
-        firestore.collection("Folders").document(folder).collection("Photos")
+        firestore.collection(userFolder()).document(folder).collection("Photos")
             .document(photoId)
             .update(updates)
             .addOnSuccessListener { onSuccess() }
@@ -234,7 +237,7 @@ class PhotoRepository {
         }
 
         val publicIds = photoUrls.map { url ->
-            "PRODUCTUS/" + url.substringAfterLast("/").substringBeforeLast(".") // ✅ Добавляем путь
+            BuildConfig.CLOUDINARY_UPLOAD_DIR + "/" + url.substringAfterLast("/").substringBeforeLast(".") // ✅ Добавляем путь
         }
 
         Log.d("PhotoRepository", "Удаляем фото из Cloudinary: $publicIds") // ✅ Логируем удаляемые файлы
@@ -262,14 +265,14 @@ class PhotoRepository {
 
 
     fun deletePhoto(folder: String, photoId: String, imageUrl: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        firestore.collection("Folders").document(folder).collection("Photos")
+        firestore.collection(userFolder()).document(folder).collection("Photos")
             .document(photoId)
             .delete()
             .addOnSuccessListener {
                 // В пути должно быть PRODUCTUS
 //                val parts = imageUrl.split("/upload/")[1].split("/")
 //                val publicId = parts.drop(1).joinToString("/").substringBeforeLast(".")
-                val publicId = "PRODUCTUS/" + imageUrl.substringAfterLast("/").substringBeforeLast(".")
+                val publicId = BuildConfig.CLOUDINARY_UPLOAD_DIR + "/" + imageUrl.substringAfterLast("/").substringBeforeLast(".")
 
 
                 Log.d("PhotoRepository", "Extracted publicId: $publicId from URL: $imageUrl")
@@ -313,7 +316,7 @@ class PhotoRepository {
     fun deleteFolder(folder: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val uid = userId ?: return // ✅ Если пользователь не залогинен, ничего не делаем
 
-        val folderRef = firestore.collection("Folders-$uid").document(folder).collection("Photos")
+        val folderRef = firestore.collection(userFolder()).document(folder).collection("Photos")
 
         folderRef.get().addOnSuccessListener { snapshot ->
             val batch = firestore.batch()
@@ -326,9 +329,8 @@ class PhotoRepository {
             }
 
             batch.commit().addOnSuccessListener {
-                // ✅ Удаляем фото из Cloudinary
                 deletePhotosFromCloudinary(photoUrls) {
-                    firestore.collection("Folders-$uid").document(folder).delete()
+                    firestore.collection(userFolder()).document(folder).delete()
                         .addOnSuccessListener { onSuccess() }
                         .addOnFailureListener { onFailure(it) }
                 }
