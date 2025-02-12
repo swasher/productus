@@ -1,6 +1,7 @@
 package com.swasher.productus.data.repository
 
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
@@ -13,17 +14,38 @@ class AuthRepository {
 
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
 
+//    fun signInWithGoogle(idToken: String, onSuccess: (FirebaseUser) -> Unit, onFailure: (Exception) -> Unit) {
+//        val credential = GoogleAuthProvider.getCredential(idToken, null)
+//        auth.signInWithCredential(credential)
+//            .addOnSuccessListener { result ->
+//                val user = result.user
+//                if (user != null) {
+//                    saveUserToFirestore(user)
+//                    onSuccess(user)
+//                }
+//            }
+//            .addOnFailureListener { onFailure(it) }
+//    }
+
     fun signInWithGoogle(idToken: String, onSuccess: (FirebaseUser) -> Unit, onFailure: (Exception) -> Unit) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
-        auth.signInWithCredential(credential)
-            .addOnSuccessListener { result ->
-                val user = result.user
-                if (user != null) {
-                    saveUserToFirestore(user)
-                    onSuccess(user)
+
+        FirebaseAuth.getInstance().signInWithCredential(credential)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    val user = task.result?.user
+                    if (user != null) {
+                        Log.d("AuthRepository", "Успешный вход: ${user.email}")
+                        onSuccess(user)
+                    } else {
+                        Log.e("AuthRepository", "Ошибка: пользователь null")
+                        onFailure(Exception("Ошибка входа"))
+                    }
+                } else {
+                    Log.e("AuthRepository", "Ошибка входа: ${task.exception?.message}", task.exception)
+                    onFailure(task.exception ?: Exception("Неизвестная ошибка входа"))
                 }
             }
-            .addOnFailureListener { onFailure(it) }
     }
 
     private fun saveUserToFirestore(user: FirebaseUser) {

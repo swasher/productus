@@ -16,12 +16,13 @@ import com.cloudinary.android.MediaManager
 import com.cloudinary.utils.ObjectUtils
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.auth.FirebaseAuth
 import com.swasher.productus.data.model.Photo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.UUID
+
 
 fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): String {
     // c_auto - автоматески подгоняет под размер
@@ -33,23 +34,44 @@ fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): Stri
 class PhotoRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val photosCollection = firestore.collection("photos")
+    private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid // ✅ Теперь `userId` хранится здесь
 
-    // 📌 Получаем список папок (коллекций)
+
+//    // 📌 Получаем список папок (коллекций)
+//    fun getFolders(onSuccess: (List<String>) -> Unit, onFailure: (Exception) -> Unit) {
+//        firestore.collection("Folders")
+//            .get()
+//            .addOnSuccessListener { snapshot ->
+//                val folders = snapshot.documents.map { it.id } // Каждая коллекция - это папка
+//                onSuccess(folders)
+//            }
+//            .addOnFailureListener { onFailure(it) }
+//    }
+
+    fun userFolder(): String {
+        return "User-$userId"
+    }
+
+
+    // Теперь отображает папки залогиненного юзера
     fun getFolders(onSuccess: (List<String>) -> Unit, onFailure: (Exception) -> Unit) {
-        firestore.collection("Folders")
+        // val uid = userId ?: return // Если пользователь не залогинен — ничего не делаем
+
+        firestore.collection(userFolder())
             .get()
             .addOnSuccessListener { snapshot ->
-                val folders = snapshot.documents.map { it.id } // Каждая коллекция - это папка
+                val folders = snapshot.documents.map { it.id }
                 onSuccess(folders)
             }
             .addOnFailureListener { onFailure(it) }
     }
 
-
     // Получаем фото внутри конкретной папки
     fun getPhotos(folder: String, onSuccess: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
         Log.d("PhotoRepository", "Fetching photos for folder: $folder")
-        firestore.collection("Folders").document(folder).collection("Photos")
+        // val uid = userId ?: return
+
+        firestore.collection(userFolder()).document(folder).collection("Photos")
             .orderBy("createdAt")
             .get()
             .addOnSuccessListener { snapshot ->
@@ -66,6 +88,8 @@ class PhotoRepository {
 
     // Загружаем всю коллекцию локально для полнотекстового поиска
     fun getAllPhotos(onSuccess: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
+        // val uid = userId ?: return
+
         firestore.collectionGroup("Photos")
             .get()
             .addOnSuccessListener { snapshot ->
@@ -83,13 +107,12 @@ class PhotoRepository {
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        val publicId = imageUrl.substringAfterLast("/") // 📌 Извлекаем `vivzby7juh6ph5g4nywq.jpg`
-            .substringBeforeLast(".") // 📌 Убираем расширение `.jpg`
+        val publicId = imageUrl.substringAfterLast("/").substringBeforeLast(".") // Извлекаем `vivzby7juh6ph5g4nywq.jpg`, Убираем расширение `.jpg`
 
         val photo = Photo(
             id = publicId,
             imageUrl = imageUrl,
-            folder = folder,
+            folder = userFolder(),
             comment = "",
             tags = emptyList(),
             createdAt = System.currentTimeMillis(),
@@ -101,10 +124,52 @@ class PhotoRepository {
             price = 0f
         )
 
-        firestore.collection("Folders").document(folder).collection("Photos")
+        firestore.collection(userFolder()).document(folder).collection("Photos")
             .document(publicId)
             .set(photo)
             .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+
+    fun createFolder(folderName: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        val uid = userId ?: return // ✅ Если пользователя нет, ничего не делаем
+
+        firestore.collection(userFolder()) // ✅ Теперь создаем коллекцию внутри "Folders-<userId>"
+            .document(folderName)
+            .set(mapOf("createdAt" to System.currentTimeMillis()))
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+
+    fun renameFolder(oldName: String, newName: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        val uid = userId ?: return // ✅ Если пользователя нет, ничего не делаем
+
+        val oldFolderRef = firestore.collection(userFolder()).document(oldName)
+        val newFolderRef = firestore.collection(userFolder()).document(newName)
+
+        // ✅ Создаём новую папку (метаданные)
+        newFolderRef.set(mapOf("createdAt" to System.currentTimeMillis()))
+            .addOnSuccessListener {
+                oldFolderRef.collection("Photos").get()
+                    .addOnSuccessListener { snapshot ->
+                        val batch = firestore.batch()
+
+                        snapshot.documents.forEach { doc ->
+                            val newDocRef = newFolderRef.collection("Photos").document(doc.id)
+                            batch.set(newDocRef, doc.data ?: emptyMap<String, Any>()) // ✅ Копируем фото в новую папку
+                            batch.delete(doc.reference) // ✅ Удаляем из старой папки
+                        }
+
+                        batch.commit().addOnSuccessListener {
+                            oldFolderRef.delete() // ✅ Удаляем старую папку
+                                .addOnSuccessListener { onSuccess() }
+                                .addOnFailureListener { onFailure(it) }
+                        }.addOnFailureListener { onFailure(it) }
+                    }
+                    .addOnFailureListener { onFailure(it) }
+            }
             .addOnFailureListener { onFailure(it) }
     }
 
@@ -147,7 +212,7 @@ class PhotoRepository {
 
 
     fun observePhotos(folder: String, onUpdate: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
-        firestore.collection("Folders").document(folder).collection("Photos")
+        firestore.collection(userFolder()).document(folder).collection("Photos")
             .orderBy("createdAt")
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -245,7 +310,31 @@ class PhotoRepository {
             }
     }
 
+    fun deleteFolder(folder: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        val uid = userId ?: return // ✅ Если пользователь не залогинен, ничего не делаем
 
+        val folderRef = firestore.collection("Folders-$uid").document(folder).collection("Photos")
+
+        folderRef.get().addOnSuccessListener { snapshot ->
+            val batch = firestore.batch()
+            val photoUrls = mutableListOf<String>()
+
+            snapshot.documents.forEach { doc ->
+                batch.delete(doc.reference)
+                val photo = doc.toObject(Photo::class.java)
+                photo?.imageUrl?.let { photoUrls.add(it) } // ✅ Собираем ссылки на фото
+            }
+
+            batch.commit().addOnSuccessListener {
+                // ✅ Удаляем фото из Cloudinary
+                deletePhotosFromCloudinary(photoUrls) {
+                    firestore.collection("Folders-$uid").document(folder).delete()
+                        .addOnSuccessListener { onSuccess() }
+                        .addOnFailureListener { onFailure(it) }
+                }
+            }.addOnFailureListener { onFailure(it) }
+        }.addOnFailureListener { onFailure(it) }
+    }
 
 
 

@@ -26,18 +26,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.QuerySnapshot
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
+
 
 
 class PhotoViewModel : ViewModel() {
     private val repository = PhotoRepository()
-    private val firestore = FirebaseFirestore.getInstance()
+    // private val firestore = FirebaseFirestore.getInstance()
 
     // для отбора фото внутри папки
     private val _photos = MutableStateFlow<List<Photo>>(emptyList())
@@ -53,7 +47,7 @@ class PhotoViewModel : ViewModel() {
 
     // для обновления списка папок после добавления или удаления папки
     private val _folders = MutableStateFlow<List<String>>(emptyList())
-    val folders = _folders.asStateFlow()
+    val folders: StateFlow<List<String>> = _folders.asStateFlow()
 
     // поиск по предварительно скачанной коллекции Firebase
     private val _allPhotos = MutableStateFlow<List<Photo>>(emptyList()) // ✅ Все фото в памяти
@@ -67,87 +61,19 @@ class PhotoViewModel : ViewModel() {
         loadAllPhotos() // ✅ Загружаем коллекцию при запуске
     }
 
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                PhotoViewModel()
+            }
+        }
+    }
+
     private fun loadAllPhotos() {
         repository.getAllPhotos(
             onSuccess = { _allPhotos.value = it },
             onFailure = { it.printStackTrace() }
         )
-    }
-
-    fun loadFolders() {
-        repository.getFolders(
-            onSuccess = { _folders.value = it },
-            onFailure = { it.printStackTrace() }
-        )
-    }
-
-    fun createFolder(folderName: String) {
-        FirebaseFirestore.getInstance()
-            .collection("Folders") // ✅ Теперь создаем коллекцию внутри "Folders"
-            .document(folderName)
-            .set(mapOf("createdAt" to System.currentTimeMillis())) // ✅ Добавляем метаданные, чтобы Firestore создал коллекцию
-            .addOnSuccessListener { loadFolders() }
-    }
-
-
-    fun renameFolder(oldName: String, newName: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        val oldFolderRef = firestore.collection("Folders").document(oldName)
-        val newFolderRef = firestore.collection("Folders").document(newName)
-
-        // ✅ Создаём пустую новую папку (метаданные)
-        newFolderRef.set(mapOf("createdAt" to System.currentTimeMillis()))
-            .addOnSuccessListener {
-                oldFolderRef.collection("Photos").get()
-                    .addOnSuccessListener { snapshot ->
-                        val batch = firestore.batch()
-
-                        snapshot.documents.forEach { doc ->
-                            val newDocRef = newFolderRef.collection("Photos").document(doc.id)
-                            batch.set(newDocRef, doc.data ?: emptyMap<String, Any>()) // ✅ Копируем фото в новую папку
-                            batch.delete(doc.reference) // ✅ Удаляем из старой папки
-                        }
-
-                        batch.commit().addOnSuccessListener {
-                            // ✅ Удаляем только метаданные старой папки, не трогая фото
-                            oldFolderRef.delete()
-                                .addOnSuccessListener {
-                                    loadFolders() // ✅ Обновляем список папок
-                                    onSuccess()
-                                }
-                                .addOnFailureListener { onFailure(it) }
-                        }.addOnFailureListener { onFailure(it) }
-                    }
-                    .addOnFailureListener { onFailure(it) }
-            }
-            .addOnFailureListener { onFailure(it) }
-    }
-
-
-    fun deleteFolder(folder: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        val folderRef = firestore.collection("Folders").document(folder).collection("Photos")
-
-        folderRef.get().addOnSuccessListener { snapshot ->
-            val batch = firestore.batch()
-            val photoUrls = mutableListOf<String>()
-
-            snapshot.documents.forEach { doc ->
-                batch.delete(doc.reference)
-                val photo = doc.toObject(Photo::class.java)
-                photo?.imageUrl?.let { photoUrls.add(it) } // Собираем ссылки на фото
-            }
-
-            batch.commit().addOnSuccessListener {
-                // 📌 Удаляем фото из Cloudinary
-                repository.deletePhotosFromCloudinary(photoUrls) {
-                    firestore.collection("Folders").document(folder).delete()
-                        .addOnSuccessListener {
-                            loadFolders()
-                            onSuccess()
-                        }
-                        .addOnFailureListener { onFailure(it) }
-                }
-            }.addOnFailureListener { onFailure(it) }
-        }.addOnFailureListener { onFailure(it) }
     }
 
     fun loadPhotos(folder: String) {
@@ -164,6 +90,56 @@ class PhotoViewModel : ViewModel() {
             }
         )
     }
+
+
+
+//    fun loadFolders() {
+//        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+//        repository.getFolders(
+//            userId = userId,
+//            onSuccess = { _folders.value = it },
+//            onFailure = { it.printStackTrace() }
+//        )
+//    }
+
+    fun loadFolders() {
+        repository.getFolders(
+            onSuccess = { _folders.value = it },
+            onFailure = { it.printStackTrace() }
+        )
+    }
+
+    fun createFolder(folderName: String) {
+        repository.createFolder(
+            folderName = folderName,
+            onSuccess = { loadFolders() }, // ✅ Перезагружаем список папок
+            onFailure = { it.printStackTrace() }
+        )
+    }
+
+
+    fun renameFolder(oldName: String, newName: String) {
+        repository.renameFolder(
+            oldName = oldName,
+            newName = newName,
+            onSuccess = { loadFolders() }, // ✅ Перезагружаем список папок
+            onFailure = { it.printStackTrace() }
+        )
+    }
+
+
+    fun deleteFolder(folder: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+        repository.deleteFolder(
+            folder = folder,
+            onSuccess = {
+                loadFolders() // ✅ Перезагружаем список папок
+                onSuccess()
+            },
+            onFailure = { onFailure(it) }
+        )
+    }
+
+
 
     fun deletePhoto(folder: String, photoId: String, imageUrl: String) {
         repository.deletePhoto(
@@ -204,16 +180,7 @@ class PhotoViewModel : ViewModel() {
         )
     }
 
-
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                PhotoViewModel()
-            }
-        }
-    }
-
-    // Фильтрованный список фото
+    // список фото для вывода на экране "Список фото в папке"
     val filteredPhotos = combine(photos, filterTag, filterFolder) { photos, tag, folder ->
         photos.filter {
             (tag == null || it.tags.contains(tag)) &&
@@ -233,7 +200,7 @@ class PhotoViewModel : ViewModel() {
         _searchResults.value = emptyList()
     }
 
-    // Вариант с возвратом Flow (через запрос к Firestore)
+    // Вариант поиска с возвратом Flow (через запрос к Firestore)
     /*
     suspend fun searchPhotos(query: String): Flow<List<Photo>> = flow {
         if (query.isBlank()) {
@@ -255,7 +222,7 @@ class PhotoViewModel : ViewModel() {
     */
 
 
-    // Вариант через запрос к Firestore
+    // Вариант поиска через запрос к Firestore
     /*
     // TODO добавить .debounce(300)
     suspend fun searchPhotos(query: String) {
@@ -284,7 +251,7 @@ class PhotoViewModel : ViewModel() {
     }
     */
 
-    // Вариант через предзагруженную коллекцию Firestore
+    // Вариант поиска через предзагруженную коллекцию Firestore
     fun searchPhotos(query: String) {
         if (query.isBlank()) {
             _searchResults.value = emptyList() // ✅ Если строка пустая, сбрасываем поиск

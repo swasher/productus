@@ -55,8 +55,10 @@ class MainActivity : ComponentActivity() {
                 val currentUser by authViewModel.currentUser.collectAsState()
 
                 Scaffold(
-                    // topBar = { TopAppBar(title = { Text("My Productus Software") }) },
                     topBar = {
+                        val authViewModel: AuthViewModel = viewModel() // ✅ Явно создаем AuthViewModel
+                        val currentUser by authViewModel.currentUser.collectAsState()
+
                         if (currentUser != null) {
                             MainTopBar(navController, authViewModel)
                         }

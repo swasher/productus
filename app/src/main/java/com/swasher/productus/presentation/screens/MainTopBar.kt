@@ -26,14 +26,17 @@ import com.swasher.productus.presentation.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainTopBar(navController: NavController, viewModel: AuthViewModel = viewModel()) {
-    val user = viewModel.currentUser.collectAsState().value
+fun MainTopBar(navController: NavController, viewModel: AuthViewModel) {
+    val currentUser by viewModel.currentUser.collectAsState()
+
+    if (currentUser == null) return // Если пользователь не залогинен – не показываем TopBar
 
     TopAppBar(
         title = { Text("Productus") },
         actions = {
-            user?.photoUrl?.toString()?.let { photoUrl ->
+            currentUser?.photoUrl?.toString()?.let { photoUrl ->
                 var expanded by remember { mutableStateOf(false) }
+
                 Box {
                     IconButton(onClick = { expanded = true }) {
                         Image(
@@ -44,6 +47,7 @@ fun MainTopBar(navController: NavController, viewModel: AuthViewModel = viewMode
                                 .clip(CircleShape)
                         )
                     }
+
                     DropdownMenu(
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
@@ -51,6 +55,7 @@ fun MainTopBar(navController: NavController, viewModel: AuthViewModel = viewMode
                         DropdownMenuItem(
                             text = { Text("Logout") },
                             onClick = {
+                                expanded = false
                                 viewModel.signOut()
                                 navController.navigate("loginScreen") {
                                     popUpTo("folders") { inclusive = true }

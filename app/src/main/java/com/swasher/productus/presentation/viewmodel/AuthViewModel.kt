@@ -1,5 +1,6 @@
 package com.swasher.productus.presentation.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
@@ -18,10 +19,18 @@ class AuthViewModel : ViewModel() {
     val currentUser: StateFlow<FirebaseUser?> = _currentUser.asStateFlow()
 
     fun signInWithGoogle(idToken: String) {
+        Log.d("AuthViewModel", "signInWithGoogle вызван с idToken: $idToken")
+
         viewModelScope.launch {
             authRepository.signInWithGoogle(idToken,
-                onSuccess = { _currentUser.value = it },
-                onFailure = { it.printStackTrace() }
+                onSuccess = {
+                    Log.d("AuthViewModel", "Вход выполнен: ${it.email}") // ✅ Логируем успешный вход
+                    _currentUser.value = it
+                },
+                onFailure = {
+                    Log.e("AuthViewModel", "Ошибка входа: ${it.message}", it) // ❌ Логируем ошибку
+                    it.printStackTrace()
+                }
             )
         }
     }

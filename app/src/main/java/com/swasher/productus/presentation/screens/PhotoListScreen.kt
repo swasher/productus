@@ -61,6 +61,8 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
     var selectedTag by remember { mutableStateOf<String?>(null) }
 
+    Log.d("PhotoListScreen", "Вход в экран, фолдер: $folderName")
+
     // deprecated
     // var expanded by remember { mutableStateOf(false) }
 
