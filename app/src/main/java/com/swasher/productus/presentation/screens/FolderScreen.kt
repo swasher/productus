@@ -160,25 +160,13 @@ fun FolderScreen(navController: NavController, viewModel: PhotoViewModel = viewM
                 confirmButton = {
                     Button(
                         onClick = {
-//                            folderToRename?.let { oldName ->
-//                                viewModel.renameFolder(
-//                                    oldName,
-//                                    newFolderName,
-//                                    onSuccess = {
-//                                        showRenameDialog = false
-//                                        navController.popBackStack("folders", inclusive = false) // ✅ Обновляем список
-//                                    },
-//                                    onFailure = {
-//                                        showRenameDialog = false
-//                                    })
-//                            }
                             folderToRename?.let { oldName ->
                                 viewModel.renameFolder(
                                     oldName,
                                     newFolderName
                                 )
                             }
-
+                            showRenameDialog = false
                         }
                     ) {
                         Text("Сохранить")

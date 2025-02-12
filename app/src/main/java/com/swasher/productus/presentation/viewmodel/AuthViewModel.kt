@@ -15,17 +15,22 @@ import com.swasher.productus.data.repository.AuthRepository
 class AuthViewModel : ViewModel() {
     private val authRepository = AuthRepository()
 
-    private val _currentUser = MutableStateFlow<FirebaseUser?>(authRepository.getCurrentUser())
+//    private val _currentUser = MutableStateFlow<FirebaseUser?>(authRepository.getCurrentUser()) // ❗ Сначала было: authRepository.getCurrentUser()
+    private val _currentUser = MutableStateFlow<FirebaseUser?>(null)
     val currentUser: StateFlow<FirebaseUser?> = _currentUser.asStateFlow()
+
+    init {
+        _currentUser.value = authRepository.getCurrentUser() // ✅ Устанавливаем пользователя при старте
+    }
 
     fun signInWithGoogle(idToken: String) {
         Log.d("AuthViewModel", "signInWithGoogle вызван с idToken: $idToken")
 
         viewModelScope.launch {
             authRepository.signInWithGoogle(idToken,
-                onSuccess = {
-                    Log.d("AuthViewModel", "Вход выполнен: ${it.email}") // ✅ Логируем успешный вход
-                    _currentUser.value = it
+                onSuccess = { user ->
+                    Log.d("AuthViewModel", "Вход выполнен: ${user.email}") // ✅ Логируем успешный вход
+                    _currentUser.value = user
                 },
                 onFailure = {
                     Log.e("AuthViewModel", "Ошибка входа: ${it.message}", it) // ❌ Логируем ошибку

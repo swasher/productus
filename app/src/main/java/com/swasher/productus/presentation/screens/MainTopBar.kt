@@ -4,10 +4,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -35,6 +38,7 @@ fun MainTopBar(navController: NavController, viewModel: AuthViewModel) {
         actions = {
             currentUser?.photoUrl?.toString()?.let { photoUrl ->
                 var expanded by remember { mutableStateOf(false) }
+                val email = currentUser?.email ?: "Not logged in"
 
                 Box {
                     IconButton(onClick = { expanded = true }) {
@@ -51,6 +55,20 @@ fun MainTopBar(navController: NavController, viewModel: AuthViewModel) {
                         expanded = expanded,
                         onDismissRequest = { expanded = false }
                     ) {
+                        // Другие пункты меню
+                        DropdownMenuItem(
+                            text = { Text(email) },
+                            onClick = {
+                                expanded = false
+                            }
+                        )
+
+                        // Горизонтальная черта
+                        HorizontalDivider(
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                        )
+
                         DropdownMenuItem(
                             text = { Text("Logout") },
                             onClick = {

@@ -54,59 +54,59 @@ class MainActivity : ComponentActivity() {
                 val authViewModel: AuthViewModel = viewModel()
                 val currentUser by authViewModel.currentUser.collectAsState()
 
-                Scaffold(
-                    topBar = {
-                        val authViewModel: AuthViewModel = viewModel() // ✅ Явно создаем AuthViewModel
-                        val currentUser by authViewModel.currentUser.collectAsState()
+                if (currentUser == null) {
+                    LoginScreen(navController)
+                } else {
 
-                        if (currentUser != null) {
+                    Scaffold(
+                        topBar = {
                             MainTopBar(navController, authViewModel)
-                        }
-                    },
-                ) { innerPadding ->
+                        },
+                    ) { innerPadding ->
 
-                    NavHost(
-                        navController = navController,
-                        startDestination = if (currentUser != null) "folders" else "loginScreen",
-                        modifier = Modifier.padding(innerPadding)
-                    ) {
-                        composable("loginScreen") {
-                            LoginScreen(navController)
-                        }
-                        composable("folders") {
-                            FolderScreen(navController)
-                        }
-                        composable("photoList/{folderName}") { backStackEntry ->
-                            val folderName = backStackEntry.arguments?.getString("folderName") ?: "Unsorted"
-                            PhotoListScreen(navController, folderName)
-                        }
-                        composable("photoDetail/{folderName}/{photoId}") { backStackEntry ->
-                            val folderName = backStackEntry.arguments?.getString("folderName") ?: "Unsorted"
-                            val photoId = backStackEntry.arguments?.getString("photoId") ?: ""
-
-                            val viewModel: PhotoViewModel = viewModel(factory = PhotoViewModel.Factory)
-                            val photosState = viewModel.photos.collectAsState() // Получаем State<List<Photo>>
-
-                            LaunchedEffect(folderName) {
-                                viewModel.loadPhotos(folderName)
+                        NavHost(
+                            navController = navController,
+                            startDestination = "folders",
+                            modifier = Modifier.padding(innerPadding)
+                        ) {
+                            composable("loginScreen") {
+                                LoginScreen(navController)
                             }
-
-                            val photos = photosState.value // Получаем List<Photo>
-                            val photo = photos.find { it.id == photoId } // Получаем фото из списка
-
-                            if (photo != null) {
-                                Log.d("PhotoDetailScreen", "Photo found: $photo")
-                                PhotoDetailScreen(navController, folderName, photo)
-                            } else {
-                                Text("Фото не найдено")
+                            composable("folders") {
+                                FolderScreen(navController)
                             }
-                        }
-                        composable("fullScreenPhoto/{imageUrl}") { backStackEntry ->
-                            val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
-                            FullScreenPhotoScreen(navController, imageUrl)
-                        }
-                        composable("searchScreen") {
-                            SearchScreen(navController)
+                            composable("photoList/{folderName}") { backStackEntry ->
+                                val folderName = backStackEntry.arguments?.getString("folderName") ?: "Unsorted"
+                                PhotoListScreen(navController, folderName)
+                            }
+                            composable("photoDetail/{folderName}/{photoId}") { backStackEntry ->
+                                val folderName = backStackEntry.arguments?.getString("folderName") ?: "Unsorted"
+                                val photoId = backStackEntry.arguments?.getString("photoId") ?: ""
+
+                                val viewModel: PhotoViewModel = viewModel(factory = PhotoViewModel.Factory)
+                                val photosState = viewModel.photos.collectAsState() // Получаем State<List<Photo>>
+
+                                LaunchedEffect(folderName) {
+                                    viewModel.loadPhotos(folderName)
+                                }
+
+                                val photos = photosState.value // Получаем List<Photo>
+                                val photo = photos.find { it.id == photoId } // Получаем фото из списка
+
+                                if (photo != null) {
+                                    Log.d("PhotoDetailScreen", "Photo found: $photo")
+                                    PhotoDetailScreen(navController, folderName, photo)
+                                } else {
+                                    Text("Фото не найдено")
+                                }
+                            }
+                            composable("fullScreenPhoto/{imageUrl}") { backStackEntry ->
+                                val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""
+                                FullScreenPhotoScreen(navController, imageUrl)
+                            }
+                            composable("searchScreen") {
+                                SearchScreen(navController)
+                            }
                         }
                     }
                 }
