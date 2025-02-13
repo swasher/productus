@@ -2,11 +2,10 @@ package com.swasher.productus.presentation.camera
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.content.Intent
 import android.Manifest
 import android.media.MediaPlayer
-import android.net.Uri
 import android.os.Bundle
-import android.os.Environment
 import android.util.Log
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
@@ -19,18 +18,11 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.cloudinary.android.MediaManager
-import com.cloudinary.android.callback.UploadCallback
-import com.cloudinary.android.callback.ErrorInfo
-import com.swasher.productus.BuildConfig
 import com.swasher.productus.R
-import com.swasher.productus.data.repository.PhotoRepository
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-//import com.cloudinary.android.callback.UploadCallback
-//import com.cloudinary.UploadCallback
 
 class CameraActivity : ComponentActivity() {
 
@@ -111,12 +103,9 @@ class CameraActivity : ComponentActivity() {
         cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            // замена
-            //            val preview = Preview.Builder().build().also {
-            //                it.setSurfaceProvider(previewView.surfaceProvider)
-            //            }
-            val preview = Preview.Builder().build()
-            preview.surfaceProvider = previewView.surfaceProvider // ✅ Обязательно устанавливаем SurfaceProvider
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
 
             imageCapture = ImageCapture.Builder().build()
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -131,11 +120,15 @@ class CameraActivity : ComponentActivity() {
     }
 
     private fun playShutterSound() {
-        val mediaPlayer = MediaPlayer.create(this, R.raw.camera_shutter) // 📌 Подключаем звук
+        val shutterSound = R.raw.kwahmah_02_camera2
+        // val shutterSound = R.raw.benboncan_dslr_click
+        // val shutterSound = R.raw.the_egyptian_gamedev_camera_shutter // этот не завелся
+        val mediaPlayer = MediaPlayer.create(this, shutterSound) // 📌 Подключаем звук
         mediaPlayer.setOnCompletionListener { it.release() } // ✅ Освобождаем ресурс после воспроизведения
         mediaPlayer.start()
     }
 
+    /*
     private fun takePhoto() {
         val imageCapture = imageCapture ?: run {
             Log.e("CameraActivity", "Ошибка: imageCapture = null")
@@ -167,48 +160,31 @@ class CameraActivity : ComponentActivity() {
             }
         )
     }
+    */
 
-    private fun uploadToCloudinary(uri: Uri, folderName: String) {
-        val cloudinaryFolder = BuildConfig.CLOUDINARY_UPLOAD_DIR
-        Log.d("CameraActivity", "🌍 Начинаем загрузку фото в Cloudinary: $uri, в папку $cloudinaryFolder")
 
-        MediaManager.get().upload(uri)
-            .option("resource_type", "image")
-            .option("folder", cloudinaryFolder)
-            .callback(object : UploadCallback {
-                override fun onStart(requestId: String) {}
-                override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {}
+    // НОВАЯ ФУНКЦИЯ БЕЗ ИСПОЛЬЗОВАНИЯ CLOUDINARY НАПРЯМУЮ
+    private fun takePhoto() {
+        val imageCapture = imageCapture ?: return
+        val photoFile = File(externalCacheDir, "${System.currentTimeMillis()}.jpg")
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
-                override fun onSuccess(requestId: String, resultData: Map<*, *>) {
-                    val imageUrl = resultData["secure_url"] as String
-                    Log.d("CameraActivity", "✅ Фото загружено в Cloudinary: $imageUrl")
-
-                    savePhotoToFirebase(folderName, imageUrl)
-
-                    // ✅ После загрузки можно закрыть камеру
-                    finish()
+        imageCapture.takePicture(outputOptions, ContextCompat.getMainExecutor(this),
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    val intent = Intent().apply {
+                        putExtra("photo_path", photoFile.absolutePath)
+                    }
+                    playShutterSound()
+                    setResult(RESULT_OK, intent)
+                    finish() // ✅ Закрываем камеру сразу после съемки
                 }
 
-                override fun onError(requestId: String, error: ErrorInfo) {
-                    Log.e("CameraActivity", "❌ Ошибка загрузки в Cloudinary: ${error.description}")
+                override fun onError(exception: ImageCaptureException) {
+                    Log.e("CameraActivity", "Ошибка сохранения фото", exception)
                 }
-
-                override fun onReschedule(requestId: String, error: ErrorInfo) {}
             })
-            .dispatch()
     }
-
-
-    private fun savePhotoToFirebase(folder: String, imageUrl: String) {
-        val repository = PhotoRepository()
-        repository.savePhoto(
-            folder = folder,
-            imageUrl = imageUrl,
-            onSuccess = { Log.d("CameraActivity", "✅ Фото сохранено в Firebase!") },
-            onFailure = { Log.e("CameraActivity", "❌ Ошибка сохранения фото в Firebase", it) }
-        )
-    }
-
 
     @SuppressLint("UnsafeOptInUsageError")
     private fun focusOnPoint(x: Float, y: Float) {

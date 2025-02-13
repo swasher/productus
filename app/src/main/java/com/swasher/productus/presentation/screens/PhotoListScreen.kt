@@ -1,7 +1,10 @@
 package com.swasher.productus.presentation.screens
 
+import android.app.Activity
 import android.content.Intent
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavController
@@ -41,6 +44,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 
 
@@ -49,7 +53,7 @@ import com.swasher.productus.data.repository.getThumbnailUrl
 import com.swasher.productus.presentation.camera.CameraActivity
 import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
-
+private const val REQUEST_CODE_CAMERA = 1001
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,6 +64,20 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
     val allFolders = allPhotos.map { it.folder }.toSet().toList()
 
     var selectedTag by remember { mutableStateOf<String?>(null) }
+
+    val isUploading by viewModel.isUploading.collectAsState()
+
+
+    val context = LocalContext.current
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val photoPath = result.data?.getStringExtra("photo_path") ?: return@rememberLauncherForActivityResult
+            viewModel.uploadPhoto(photoPath, folderName)
+        }
+    }
+
 
     Log.d("PhotoListScreen", "Вход в экран, фолдер: $folderName")
 
@@ -85,6 +103,8 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                 }
             )
         },
+
+        /*
         floatingActionButton = { // ✅ Добавили кнопку "Добавить фото"
             FloatingActionButton(onClick = {
                 val intent = Intent(navController.context, CameraActivity::class.java).apply {
@@ -95,12 +115,28 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                 Icon(Icons.Default.AddAPhoto, contentDescription = "Добавить фото")
             }
         }
+        */
+        floatingActionButton = {
+            FloatingActionButton(onClick = {
+                val intent = Intent(context, CameraActivity::class.java)
+                cameraLauncher.launch(intent)
+            }) {
+                Icon(Icons.Default.CameraAlt, contentDescription = "Сделать фото")
+            }
+        }
+
+
     ) { padding ->
         Column(
             modifier = Modifier.padding(padding).padding(16.dp)
         ) {
-            // Фильтр по тегам
+            if (isUploading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text("Загрузка фото...", modifier = Modifier.align(Alignment.CenterHorizontally))
+            }
 
+
+            // Фильтр по тегам
             LazyRow {
                 items(allTags) { tag ->
                     Button(
@@ -135,10 +171,13 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                 ) {
                     items(photos) { photo ->
                         // val thumbnailUrl = getThumbnailUrl(photo.imageUrl)
-                        PhotoItem(photo=photo, folderName, navController)
+                        PhotoItem(photo = photo, folderName, navController)
                     }
                 }
             }
+
+
+
         }
     }
 }
@@ -201,3 +240,4 @@ fun PreviewPhotoListScreen() {
 
     PhotoListScreen(navController = fakeNavController, folderName, viewModel = fakeViewModel)
 }
+

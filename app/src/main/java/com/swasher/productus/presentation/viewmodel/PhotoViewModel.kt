@@ -26,12 +26,15 @@ import kotlinx.coroutines.flow.SharingStarted
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 
 class PhotoViewModel : ViewModel() {
     private val repository = PhotoRepository()
     // private val firestore = FirebaseFirestore.getInstance()
+    private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid
+    private val userFolder = "User-$userId"
 
     // для отбора фото внутри папки
     private val _photos = MutableStateFlow<List<Photo>>(emptyList())
@@ -56,6 +59,10 @@ class PhotoViewModel : ViewModel() {
     // для глобального поиска
     private val _searchResults = MutableStateFlow<List<Photo>>(emptyList())
     val searchResults: StateFlow<List<Photo>> = _searchResults.asStateFlow()
+
+    // для процесса аплоада
+    private val _isUploading = MutableStateFlow(false)
+    val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
 
     init {
         loadAllPhotos() // ✅ Загружаем коллекцию при запуске
@@ -267,6 +274,31 @@ class PhotoViewModel : ViewModel() {
             photo.tags.any { it.lowercase().contains(lowerQuery) }
         }
     }
+
+
+    fun uploadPhoto(photoPath: String, folder: String) {
+        _isUploading.value = true // ✅ Показываем индикатор загрузки
+
+        repository.uploadPhotoToCloudinary(photoPath, folder,
+            onSuccess = { imageUrl ->
+                repository.saveDataToFirebase(
+                    folder,
+                    imageUrl,
+                    onSuccess = { Log.d("CameraActivity", "✅ Фото сохранено в Firebase!")},
+                    onFailure = {
+                        it.printStackTrace()
+                        Log.e("CameraActivity", "Ошибка сохранения фото в Firebase: ${it.message}")
+                    }
+                ) // ✅ Сохраняем в Firestore
+                _isUploading.value = false // ✅ Скрываем индикатор загрузки
+            },
+            onFailure = {
+                _isUploading.value = false
+                it.printStackTrace()
+            }
+        )
+    }
+
 
 
 

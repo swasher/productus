@@ -1,6 +1,5 @@
 package com.swasher.productus.data.repository
 
-
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -14,18 +13,6 @@ class AuthRepository {
 
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
 
-//    fun signInWithGoogle(idToken: String, onSuccess: (FirebaseUser) -> Unit, onFailure: (Exception) -> Unit) {
-//        val credential = GoogleAuthProvider.getCredential(idToken, null)
-//        auth.signInWithCredential(credential)
-//            .addOnSuccessListener { result ->
-//                val user = result.user
-//                if (user != null) {
-//                    saveUserToFirestore(user)
-//                    onSuccess(user)
-//                }
-//            }
-//            .addOnFailureListener { onFailure(it) }
-//    }
 
     fun signInWithGoogle(idToken: String, onSuccess: (FirebaseUser) -> Unit, onFailure: (Exception) -> Unit) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
@@ -36,6 +23,7 @@ class AuthRepository {
                     val user = task.result?.user
                     if (user != null) {
                         Log.d("AuthRepository", "Успешный вход: ${user.email}")
+                        saveUserToFirestore(user)
                         onSuccess(user)
                     } else {
                         Log.e("AuthRepository", "Ошибка: пользователь null")
@@ -60,7 +48,6 @@ class AuthRepository {
                         "photoUrl" to (user.photoUrl?.toString() ?: "")
                     )
                 )
-                firestore.collection("User-${user.uid}").document("meta").set(mapOf("createdAt" to System.currentTimeMillis()))
             }
         }
     }
