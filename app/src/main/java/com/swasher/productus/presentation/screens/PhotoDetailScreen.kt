@@ -1,5 +1,6 @@
 package com.swasher.productus.presentation.screens
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -59,8 +60,8 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
     val keyboardPadding = imeInsets.asPaddingValues() // ✅ Преобразуем в PaddingValues
 
     val screenWidth = LocalConfiguration.current.screenWidthDp // 📌 Получаем ширину экрана в dp
-    val thumbnailUrl = getThumbnailUrl(photo.imageUrl, screenWidth * 1, 200) // 📌 Загружаем 2x для чёткости
 
+    Log.d("PhotoDetailScreen", "photo.imageUrl: ${photo.imageUrl}")
 
     Scaffold(
         topBar = {
@@ -95,7 +96,7 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Image(
-                painter = rememberAsyncImagePainter(thumbnailUrl),
+                painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl, screenWidth * 1, 200)),
                 contentDescription = "Фото",
                 modifier = Modifier
                     .fillMaxWidth()

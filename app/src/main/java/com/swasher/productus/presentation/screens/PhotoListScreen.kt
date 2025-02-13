@@ -53,7 +53,6 @@ import com.swasher.productus.data.repository.getThumbnailUrl
 import com.swasher.productus.presentation.camera.CameraActivity
 import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
-private const val REQUEST_CODE_CAMERA = 1001
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,13 +80,11 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
     Log.d("PhotoListScreen", "Вход в экран, фолдер: $folderName")
 
-    // deprecated
-    // var expanded by remember { mutableStateOf(false) }
+
 
     // Устанавливаем текущую папку
     LaunchedEffect(folderName) {
-    // viewModel.loadPhotos(folderName)
-        viewModel.startObservingPhotos(folderName)
+        viewModel.observePhotos(folderName)
     }
 
     Scaffold(
@@ -130,6 +127,8 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
         Column(
             modifier = Modifier.padding(padding).padding(16.dp)
         ) {
+
+            // Индикатор прогресса загрузки в Cloudinary
             if (isUploading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
                 Text("Загрузка фото...", modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -169,15 +168,11 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(photos) { photo ->
-                        // val thumbnailUrl = getThumbnailUrl(photo.imageUrl)
-                        PhotoItem(photo = photo, folderName, navController)
+                    items(photos, key = { it.id }) { photo ->
+                        PhotoItem(photo, folderName, navController)
                     }
                 }
             }
-
-
-
         }
     }
 }
@@ -198,7 +193,8 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
         Column {
             Text(photo.name, modifier = Modifier.padding(6.dp), style = MaterialTheme.typography.titleSmall)
             Image(
-                painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl)),
+                //painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl)),
+                painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl, width = 200, height = 200)),
                 contentDescription = "Превью фото",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -223,9 +219,6 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
             }
 
         }
-
-
-
     }
 }
 

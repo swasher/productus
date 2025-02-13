@@ -42,16 +42,6 @@ class PhotoRepository {
     private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid // ✅ Теперь `userId` хранится здесь
     private val userFolder = "User-$userId"
 
-//    // 📌 Получаем список папок (коллекций)
-//    fun getFolders(onSuccess: (List<String>) -> Unit, onFailure: (Exception) -> Unit) {
-//        firestore.collection("Folders")
-//            .get()
-//            .addOnSuccessListener { snapshot ->
-//                val folders = snapshot.documents.map { it.id } // Каждая коллекция - это папка
-//                onSuccess(folders)
-//            }
-//            .addOnFailureListener { onFailure(it) }
-//    }
 
     // Теперь отображает папки залогиненного юзера
     fun getFolders(onSuccess: (List<String>) -> Unit, onFailure: (Exception) -> Unit) {
@@ -231,6 +221,18 @@ class PhotoRepository {
             .addOnFailureListener { onFailure(it) }
     }
 
+
+    fun observeFolders(onUpdate: (List<String>) -> Unit, onFailure: (Exception) -> Unit) {
+        firestore.collection(userFolder)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onFailure(error)
+                    return@addSnapshotListener
+                }
+                val folders = snapshot?.documents?.map { it.id } ?: emptyList()
+                onUpdate(folders)
+            }
+    }
 
     fun observePhotos(folder: String, onUpdate: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
         firestore.collection(userFolder).document(folder).collection("Photos")

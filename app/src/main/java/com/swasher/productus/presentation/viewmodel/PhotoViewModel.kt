@@ -65,8 +65,30 @@ class PhotoViewModel : ViewModel() {
     val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
 
     init {
-        loadAllPhotos() // ✅ Загружаем коллекцию при запуске
+        //loadAllPhotos() // ✅ Загружаем коллекцию при запуске
+        observeFolders()
     }
+
+
+    // TODO startObservingPhotos и observePhotos наверное надо объеденить(спросить МОСК)
+
+    private fun observeFolders() {
+        repository.observeFolders(
+            onUpdate = { _folders.value = it },
+            onFailure = { it.printStackTrace() }
+        )
+    }
+
+    fun observePhotos(folder: String) {
+        repository.observePhotos(
+            folder = folder,
+            onUpdate = { _photos.value = it },
+            onFailure = { it.printStackTrace() }
+        )
+    }
+    // fun startObservingPhotos(folder: String) {
+    //     observePhotos(folder)
+    // }
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
@@ -76,6 +98,8 @@ class PhotoViewModel : ViewModel() {
         }
     }
 
+    // possible deprecated
+    // может понадобиться в будущем, если нужен будет метод для загрузки всех фото
     private fun loadAllPhotos() {
         repository.getAllPhotos(
             onSuccess = { _allPhotos.value = it },
@@ -97,17 +121,6 @@ class PhotoViewModel : ViewModel() {
             }
         )
     }
-
-
-
-//    fun loadFolders() {
-//        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
-//        repository.getFolders(
-//            userId = userId,
-//            onSuccess = { _folders.value = it },
-//            onFailure = { it.printStackTrace() }
-//        )
-//    }
 
     fun loadFolders() {
         repository.getFolders(
@@ -158,18 +171,7 @@ class PhotoViewModel : ViewModel() {
         )
     }
 
-    // TODO startObservingPhotos и observePhotos наверное надо объеденить(спросить МОСК)
-    fun startObservingPhotos(folder: String) {
-        observePhotos(folder)
-    }
 
-    private fun observePhotos(folder: String) {
-        repository.observePhotos(
-            folder = folder,
-            onUpdate = { _photos.value = it },
-            onFailure = { it.printStackTrace() }
-        )
-    }
 
     fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, name: String, country: String, store: String, price: Float) {
         val cleanedTags = tags.map { it.trim() }.filter { it.isNotBlank() } // ✅ Убираем пустые строки
