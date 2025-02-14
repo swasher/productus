@@ -14,8 +14,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -75,6 +78,7 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        containerColor = Color(0xFFeee8dc), // Устанавливаем синий фон
         content = { padding ->
             Column(
                 modifier = Modifier
@@ -85,24 +89,20 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "Productus",
+                    text = "PRODUCTUS",
+                    modifier = Modifier.padding(bottom = 1.dp),
                     style = TextStyle(
-                        fontFamily = FontFamily(Font(R.font.montserrat_bold)),
-                        fontSize = 36.sp,
+                        fontFamily = FontFamily(Font(R.font.darumadrop_one_regular)),
+                        fontSize = 46.sp,
                         fontWeight = FontWeight.Bold,
-                        color = androidx.compose.ui.graphics.Color.Red
+                        color = Color(0xFF495D92)
                     )
                 )
-                Text(
-                    text = "Productus",
-                    style = TextStyle(
-                        fontFamily = FontFamily(Font(R.font.playfair_display_bold)),
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                        color = Color(0xFF03DAC6)
-                        // fontStyle = FontStyle.Italic
-                    )
+                // Черта
+                HorizontalDivider(
+                    color = Color(0xFF495D92), // Цвет черты
+                    thickness = 4.dp,  // Толщина черты
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 60.dp), // Черта на всю ширину
                 )
                 Image(
                     painter = painterResource(id = R.drawable.login_image),

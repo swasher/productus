@@ -72,7 +72,7 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(folderName)
+                        Text(name)
                         IconButton(onClick = { showDeleteDialog = true }) { // ✅ Кнопка удаления
                             Icon(Icons.Default.Delete, contentDescription = "Удалить фото")
                         }

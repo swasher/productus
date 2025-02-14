@@ -9,6 +9,8 @@ import androidx.activity.compose.setContent
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 import androidx.navigation.compose.*
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
 import androidx.navigation.compose.rememberNavController
 
 import androidx.compose.runtime.Composable
@@ -84,13 +86,13 @@ class MainActivity : ComponentActivity() {
                                 val photoId = backStackEntry.arguments?.getString("photoId") ?: ""
 
                                 val viewModel: PhotoViewModel = viewModel(factory = PhotoViewModel.Factory)
-                                val photosState = viewModel.photos.collectAsState() // Получаем State<List<Photo>>
 
+                                val photosState = viewModel.photos.collectAsState() // Получаем State<List<Photo>>
                                 LaunchedEffect(folderName) {
                                     viewModel.loadPhotos(folderName)
                                 }
-
                                 val photos = photosState.value // Получаем List<Photo>
+
                                 val photo = photos.find { it.id == photoId } // Получаем фото из списка
 
                                 if (photo != null) {

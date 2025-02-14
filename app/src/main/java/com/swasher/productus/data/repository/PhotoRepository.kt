@@ -208,12 +208,6 @@ class PhotoRepository {
             "price" to price,
         )
 
-//        if (tags.isEmpty()) {
-//            updates["tags"] = FieldValue.delete()
-//        } else {
-//            updates["tags"] = tags
-//        }
-
         firestore.collection(userFolder).document(folder).collection("Photos")
             .document(photoId)
             .update(updates)

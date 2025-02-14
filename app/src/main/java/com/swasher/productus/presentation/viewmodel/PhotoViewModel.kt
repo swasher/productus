@@ -172,12 +172,30 @@ class PhotoViewModel : ViewModel() {
     }
 
 
+    // PREVIOUS VERIOSN
+    // fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, name: String, country: String, store: String, price: Float) {
+    //     val cleanedTags = tags.map { it.trim() }.filter { it.isNotBlank() } // ✅ Убираем пустые строки
+    //
+    //     repository.updatePhoto(
+    //         folder = folder, // 📌 Передаём имя коллекции
+    //         photoId = photoId,
+    //         comment = comment,
+    //         tags = cleanedTags,
+    //         name = name,
+    //         country = country,
+    //         store = store,
+    //         price = price,
+    //         onSuccess = { loadPhotos(folder) }, // 📌 Загружаем фото только из нужной папки
+    //         onFailure = { it.printStackTrace() }
+    //     )
+    // }
+
 
     fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, name: String, country: String, store: String, price: Float) {
         val cleanedTags = tags.map { it.trim() }.filter { it.isNotBlank() } // ✅ Убираем пустые строки
 
         repository.updatePhoto(
-            folder = folder, // 📌 Передаём имя коллекции
+            folder = folder,
             photoId = photoId,
             comment = comment,
             tags = cleanedTags,
@@ -185,10 +203,25 @@ class PhotoViewModel : ViewModel() {
             country = country,
             store = store,
             price = price,
-            onSuccess = { loadPhotos(folder) }, // 📌 Загружаем фото только из нужной папки
+            onSuccess = {
+                // 🔥 Вместо загрузки всех фото просто обновляем локальное состояние
+                _photos.value = _photos.value.map { photo ->
+                    if (photo.id == photoId) {
+                        photo.copy(
+                            comment = comment,
+                            tags = cleanedTags,
+                            name = name,
+                            country = country,
+                            store = store,
+                            price = price
+                        )
+                    } else photo
+                }
+            },
             onFailure = { it.printStackTrace() }
         )
     }
+
 
     // список фото для вывода на экране "Список фото в папке"
     val filteredPhotos = combine(photos, filterTag, filterFolder) { photos, tag, folder ->

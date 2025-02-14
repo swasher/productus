@@ -46,6 +46,8 @@ import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 
 
 import com.swasher.productus.data.model.Photo
@@ -58,13 +60,19 @@ import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 @Composable
 fun PhotoListScreen(navController: NavController, folderName: String, viewModel: PhotoViewModel = viewModel()) {
     val photos by viewModel.filteredPhotos.collectAsState()
-    val allPhotos by viewModel.photos.collectAsState()
-    val allTags = allPhotos.flatMap { it.tags }.toSet().toList()
-    val allFolders = allPhotos.map { it.folder }.toSet().toList()
+
+    //deprecated val allPhotos by viewModel.photos.collectAsState()
+
+    //val allTags = allPhotos.flatMap { it.tags }.toSet().toList()
+    //val allFolders = allPhotos.map { it.folder }.toSet().toList()
+    // замена на
+    val allTags = photos.flatMap { it.tags }.toSet().toList()
+    val allFolders = photos.map { it.folder }.toSet().toList()
 
     var selectedTag by remember { mutableStateOf<String?>(null) }
 
-    val isUploading by viewModel.isUploading.collectAsState()
+    val isUploading by viewModel.isUploading.collectAsState(initial = false)
+
 
 
     val context = LocalContext.current
@@ -181,6 +189,17 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
 @Composable
 fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
+    val thumbnailUrl = remember { getThumbnailUrl(photo.imageUrl, width = 200, height = 200) }
+    val painter = rememberAsyncImagePainter(
+        ImageRequest.Builder(LocalContext.current)
+            .data(thumbnailUrl)
+            .diskCachePolicy(CachePolicy.ENABLED) // 🔥 Включаем кеширование
+            .memoryCachePolicy(CachePolicy.ENABLED) // 🔥 Кешируем в памяти
+            .crossfade(true) // 🔥 Плавное появление изображения
+            .build()
+    )
+
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,7 +213,8 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
             Text(photo.name, modifier = Modifier.padding(6.dp), style = MaterialTheme.typography.titleSmall)
             Image(
                 //painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl)),
-                painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl, width = 200, height = 200)),
+                // painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl, width = 200, height = 200)),
+                painter = painter,
                 contentDescription = "Превью фото",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
