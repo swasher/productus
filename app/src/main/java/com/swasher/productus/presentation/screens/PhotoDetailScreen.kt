@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.hilt.navigation.compose.hiltViewModel
 
 import com.swasher.productus.data.model.Photo
 import com.swasher.productus.data.repository.PhotoRepository
@@ -46,7 +47,10 @@ import java.nio.charset.StandardCharsets
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhotoDetailScreen(navController: NavController, folderName: String, photo: Photo, viewModel: PhotoViewModel = viewModel()) {
+fun PhotoDetailScreen(navController: NavController, folderName: String, photo: Photo, viewModel: PhotoViewModel) {
+    Log.d("PhotoDetailScreen", "Вход в экран: $photo")
+
+    // val viewModel: PhotoViewModel = hiltViewModel() // теперь viewModel не пересоздается, а берется из контейнера, созданная через hilt
 
     var comment by remember { mutableStateOf(photo.comment) }
     var tags by remember { mutableStateOf(photo.tags.joinToString(", ")) }

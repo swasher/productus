@@ -6,7 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     kotlin("kapt")
-    alias(libs.plugins.dagger.hilt)
+    alias(libs.plugins.dagger.hilt.android)
     alias(libs.plugins.google.services)
 }
 
@@ -106,6 +106,7 @@ dependencies {
     // Hilt (Dependency Injection)
     implementation("com.google.dagger:hilt-android:2.55")
     kapt("com.google.dagger:hilt-compiler:2.55")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.9.0"))

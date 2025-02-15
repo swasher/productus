@@ -28,10 +28,14 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.UUID
+import javax.inject.Inject
 
 
-class PhotoViewModel : ViewModel() {
-    private val repository = PhotoRepository()
+@HiltViewModel
+class PhotoViewModel @Inject constructor(private val repository: PhotoRepository) : ViewModel()  {
+    // private val repository = PhotoRepository()
     // private val firestore = FirebaseFirestore.getInstance()
     private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid
     private val userFolder = "User-$userId"
@@ -65,7 +69,7 @@ class PhotoViewModel : ViewModel() {
     val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
 
     init {
-        //loadAllPhotos() // ✅ Загружаем коллекцию при запуске
+        loadAllPhotos() // ✅ Загружаем коллекцию при запуске
         observeFolders()
     }
 
@@ -90,16 +94,18 @@ class PhotoViewModel : ViewModel() {
     //     observePhotos(folder)
     // }
 
-    companion object {
-        val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                PhotoViewModel()
-            }
-        }
-    }
+    // При использовании hilt создвать фабрику вручную не требуется, hilt сам создаст фабрику автоматически
+    // DEPRECATED
+    // companion object {
+    //     val Factory: ViewModelProvider.Factory = viewModelFactory {
+    //         initializer {
+    //             PhotoViewModel()
+    //         }
+    //     }
+    // }
 
-    // possible deprecated
-    // может понадобиться в будущем, если нужен будет метод для загрузки всех фото
+
+    // _allPhotos нужно загружать при старте, чтобы можно было локально выполнять поиск по колллекции
     private fun loadAllPhotos() {
         repository.getAllPhotos(
             onSuccess = { _allPhotos.value = it },
@@ -228,7 +234,7 @@ class PhotoViewModel : ViewModel() {
         photos.filter {
             (tag == null || it.tags.contains(tag)) &&
                     (folder == null || it.folder == folder)
-        }
+        }.sortedByDescending { it.createdAt }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun setFilterTag(tag: String?) {
@@ -296,22 +302,27 @@ class PhotoViewModel : ViewModel() {
 
     // Вариант поиска через предзагруженную коллекцию Firestore
     fun searchPhotos(query: String) {
+        Log.d("PhotoViewModel", "Поиск: $query")
+
         if (query.isBlank()) {
             _searchResults.value = emptyList() // ✅ Если строка пустая, сбрасываем поиск
             return
         }
 
         val lowerQuery = query.lowercase()
-
-        _searchResults.value = _allPhotos.value.filter { photo ->
-            photo.name.lowercase().contains(lowerQuery) ||
-            photo.comment.lowercase().contains(lowerQuery) ||
-            photo.tags.any { it.lowercase().contains(lowerQuery) }
+        viewModelScope.launch {
+            _searchResults.value = _allPhotos.value.filter { photo ->
+                photo.name.lowercase().contains(lowerQuery) ||
+                photo.comment.lowercase().contains(lowerQuery) ||
+                photo.tags.any { it.lowercase().contains(lowerQuery) }
+            }
+            Log.d("PhotoViewModel", "Все фото: ${_allPhotos.value.size}")
+            Log.d("PhotoViewModel", "Найдено фото: ${_searchResults.value.size}")
         }
     }
 
 
-    fun uploadPhoto(photoPath: String, folder: String) {
+/*    fun uploadPhoto(photoPath: String, folder: String) {
         _isUploading.value = true // ✅ Показываем индикатор загрузки
 
         repository.uploadPhotoToCloudinary(photoPath, folder,
@@ -332,9 +343,47 @@ class PhotoViewModel : ViewModel() {
                 it.printStackTrace()
             }
         )
+    }*/
+
+    fun uploadPhoto(photoPath: String, folder: String) {
+        _isUploading.value = true // ✅ Показываем индикатор
+
+        // 📌 Создаём временное фото с локальным путем (кеш)
+        val tempPhoto = Photo(
+            id = UUID.randomUUID().toString(),
+            imageUrl = "file://$photoPath", // ✅ Временно используем кеш
+            folder = folder,
+            createdAt = System.currentTimeMillis()
+        )
+        _photos.value = _photos.value + tempPhoto // ✅ Добавляем в UI
+
+        repository.uploadPhotoToCloudinary(photoPath, folder,
+            onSuccess = { imageUrl ->
+                repository.saveDataToFirebase(
+                    folder,
+                    imageUrl,
+                    onSuccess = {
+                        Log.d("PhotoViewModel", "✅ Фото сохранено в Firebase!")
+
+                        // ✅ Обновляем URL фото на Cloudinary-ссылку
+                        _photos.value = _photos.value.map {
+                            if (it.imageUrl == "file://$photoPath") it.copy(imageUrl = imageUrl) else it
+                        }
+
+                        _isUploading.value = false // ✅ Скрываем индикатор
+                    },
+                    onFailure = {
+                        it.printStackTrace()
+                        Log.e("PhotoViewModel", "Ошибка сохранения в Firebase: ${it.message}")
+                        _isUploading.value = false
+                    }
+                )
+            },
+            onFailure = {
+                _isUploading.value = false
+                it.printStackTrace()
+            }
+        )
     }
-
-
-
 
 }

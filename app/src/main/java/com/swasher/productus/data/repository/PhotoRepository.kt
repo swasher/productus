@@ -27,6 +27,8 @@ import com.swasher.productus.BuildConfig
 import java.io.File
 import com.cloudinary.android.callback.UploadCallback
 import com.cloudinary.android.callback.ErrorInfo
+import javax.inject.Inject
+import javax.inject.Singleton
 
 
 fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): String {
@@ -36,8 +38,11 @@ fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): Stri
 }
 
 
-class PhotoRepository {
-    private val firestore = FirebaseFirestore.getInstance()
+@Singleton
+class PhotoRepository @Inject constructor(
+    private val firestore: FirebaseFirestore
+)  {
+    //private val firestore = FirebaseFirestore.getInstance()
     private val photosCollection = firestore.collection("photos")
     private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid // ✅ Теперь `userId` хранится здесь
     private val userFolder = "User-$userId"

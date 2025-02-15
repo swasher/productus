@@ -1,8 +1,6 @@
 package com.swasher.productus.presentation.screens
 
-
-import android.app.Activity
-import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,10 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -35,7 +31,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -47,9 +42,9 @@ import com.swasher.productus.R
 import com.swasher.productus.presentation.viewmodel.AuthViewModel
 
 
-
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewModel()) {
+
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -59,6 +54,7 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
             val account = task.getResult(ApiException::class.java)
             val idToken = account.idToken
             if (idToken != null) {
+                Log.d("LoginScreen", "idToken: $idToken, emai: ${account.email}")
                 viewModel.signInWithGoogle(idToken)
             }
         } catch (e: ApiException) {

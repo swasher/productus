@@ -5,6 +5,7 @@ import android.content.Intent
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavController
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -46,6 +48,7 @@ import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 
@@ -58,7 +61,8 @@ import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhotoListScreen(navController: NavController, folderName: String, viewModel: PhotoViewModel = viewModel()) {
+fun PhotoListScreen(navController: NavController, folderName: String, viewModel: PhotoViewModel) {
+
     val photos by viewModel.filteredPhotos.collectAsState()
 
     //deprecated val allPhotos by viewModel.photos.collectAsState()
@@ -73,9 +77,22 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
     val isUploading by viewModel.isUploading.collectAsState(initial = false)
 
-
-
     val context = LocalContext.current
+
+
+
+    // Claude: Add state for LazyListState
+    val listState = rememberLazyListState()
+
+    // Claude: Add effect to scroll to top when photos change
+    LaunchedEffect(photos.size) {
+        if (photos.isNotEmpty()) {
+            listState.animateScrollToItem(index = 0)
+        }
+    }
+
+
+
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -85,10 +102,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
         }
     }
 
-
     Log.d("PhotoListScreen", "Вход в экран, фолдер: $folderName")
-
-
 
     // Устанавливаем текущую папку
     LaunchedEffect(folderName) {
@@ -124,9 +138,10 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
         floatingActionButton = {
             FloatingActionButton(onClick = {
                 val intent = Intent(context, CameraActivity::class.java)
+                intent.putExtra("FOLDER_NAME", folderName)
                 cameraLauncher.launch(intent)
             }) {
-                Icon(Icons.Default.CameraAlt, contentDescription = "Сделать фото")
+                Icon(Icons.Default.AddAPhoto, contentDescription = "Сделать фото")
             }
         }
 
@@ -174,6 +189,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                 Text("Нет загруженных фото", modifier = Modifier.padding(16.dp))
             } else {
                 LazyColumn(
+                    state = listState,  // by Claude: Add this line
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(photos, key = { it.id }) { photo ->
@@ -243,14 +259,14 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
 }
 
 
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewPhotoListScreen() {
-    val fakeNavController = rememberNavController() // Создаём фейковый NavController
-    val fakeViewModel = PhotoViewModel() // Создаём фейковый ViewModel
-    val folderName = "Тестовая папка" // Пример имени папки
-
-    PhotoListScreen(navController = fakeNavController, folderName, viewModel = fakeViewModel)
-}
+// DEPRECATED
+// @Preview(showBackground = true)
+// @Composable
+// fun PreviewPhotoListScreen() {
+//     val fakeNavController = rememberNavController() // Создаём фейковый NavController
+//     val fakeViewModel = PhotoViewModel() // Создаём фейковый ViewModel
+//     val folderName = "Тестовая папка" // Пример имени папки
+//
+//     PhotoListScreen(navController = fakeNavController, folderName, viewModel = fakeViewModel)
+// }
 

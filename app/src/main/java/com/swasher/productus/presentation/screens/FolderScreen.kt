@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
@@ -23,7 +24,10 @@ import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FolderScreen(navController: NavController, viewModel: PhotoViewModel = viewModel())  {
+fun FolderScreen(navController: NavController)  {
+
+    val viewModel: PhotoViewModel = hiltViewModel() // use hilt!
+
     val folders by viewModel.folders.collectAsState()
     var folderToRename by remember { mutableStateOf<String?>(null) } // ✅ Выбранная папка для переименования
     var newFolderName by remember { mutableStateOf("") } // ✅ Новое имя папки

@@ -10,15 +10,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(navController: NavController, viewModel: PhotoViewModel = viewModel()) {
+fun SearchScreen(navController: NavController, viewModel: PhotoViewModel) {
+
+    // val viewModel: PhotoViewModel = hiltViewModel() // use hilt!
+
     var searchQuery by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
     val focusRequester = remember { FocusRequester() }
@@ -44,6 +49,8 @@ fun SearchScreen(navController: NavController, viewModel: PhotoViewModel = viewM
     LaunchedEffect(searchQuery) {
         viewModel.searchPhotos(searchQuery) // ✅ Запускаем поиск локально
     }
+
+
 
 
     Scaffold(
