@@ -55,28 +55,8 @@ fun FolderScreen(navController: NavController)  {
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
             if (folders.isEmpty()) {
                 Text("Нет созданных папок", modifier = Modifier.padding(16.dp))
-            } else {
 
-                /*
-                * ПОЛЕ ДЛЯ ПОИСКА
-                */
-                Column {
-                    TextField(
-                        value = searchQuery,
-                        onValueChange = {searchQuery  = it },
-                        label = { Text("Поиск...") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
-                                    navController.navigate("searchScreen")
-                                }
-                            },
-//                            .clickable {
-//                                navController.navigate("searchScreen")
-//                            },
-                        enabled = true // Делаем поле неактивным для ввода (если clickable вариант)
-                )}
+            } else {
 
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(folders) { folder ->

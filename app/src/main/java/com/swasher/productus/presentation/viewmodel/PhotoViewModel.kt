@@ -9,6 +9,8 @@
 
 package com.swasher.productus.presentation.viewmodel
 
+import android.app.Application
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -28,13 +30,18 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import dagger.hilt.android.internal.Contexts.getApplication
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
 import java.util.UUID
 import javax.inject.Inject
 
 
 @HiltViewModel
-class PhotoViewModel @Inject constructor(private val repository: PhotoRepository) : ViewModel()  {
+class PhotoViewModel @Inject constructor(
+    private val repository: PhotoRepository,
+    private val application: Application // Добавляем инъекцию Application
+) : ViewModel()  {
     // private val repository = PhotoRepository()
     // private val firestore = FirebaseFirestore.getInstance()
     private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid
@@ -385,5 +392,34 @@ class PhotoViewModel @Inject constructor(private val repository: PhotoRepository
             }
         )
     }
+
+
+    fun uploadPhotoFromUri(uri: Uri, folderName: String) {
+        viewModelScope.launch {
+            _isUploading.value = true
+            try {
+                val file = createTempFileFromUri(uri)
+                uploadPhoto(file.absolutePath, folderName)
+            } catch (e: Exception) {
+                Log.e("PhotoViewModel", "Error uploading local file", e)
+            } finally {
+                _isUploading.value = false
+            }
+        }
+    }
+
+    private fun createTempFileFromUri(uri: Uri): File {
+        val inputStream = application.contentResolver.openInputStream(uri)
+        val tempFile = File.createTempFile("temp_", ".jpg", application.cacheDir)
+
+        inputStream?.use { input ->
+            tempFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        }
+
+        return tempFile
+    }
+
 
 }

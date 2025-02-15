@@ -39,6 +39,7 @@ class CameraActivity : ComponentActivity() {
     private var imageCapture: ImageCapture? = null
     private var camera: Camera? = null
     private var flashEnabled = false // ✅ Вспышка вкл/выкл
+    private var mediaPlayer: MediaPlayer? = null
 
     private val currentFolder: String by lazy {
         intent.getStringExtra("FOLDER_NAME") ?: "Unsorted" // ✅ Получаем имя папки
@@ -48,6 +49,7 @@ class CameraActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         checkCameraPermission()
+        initShutterSound()
 
         setContentView(R.layout.activity_camera)
 
@@ -109,6 +111,16 @@ class CameraActivity : ComponentActivity() {
         })
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
+        mediaPlayer?.release() // Освобождаем ресурсы при уничтожении активити
+        mediaPlayer = null
+        super.onDestroy()
+        cameraExecutor.shutdown()
+    }
+
+
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
@@ -131,15 +143,29 @@ class CameraActivity : ComponentActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun playShutterSound() {
-        val shutterSound = R.raw.kwahmah_02_camera2
-        // val shutterSound = R.raw.benboncan_dslr_click
-        // val shutterSound = R.raw.the_egyptian_gamedev_camera_shutter // этот не завелся
-        val mediaPlayer = MediaPlayer.create(this, shutterSound) // 📌 Подключаем звук
-        mediaPlayer.setOnCompletionListener { it.release() } // ✅ Освобождаем ресурс после воспроизведения
-        mediaPlayer.start()
+    private fun initShutterSound() {
+        mediaPlayer = MediaPlayer.create(this, R.raw.kwahmah_02_camera2)
+        mediaPlayer?.setOnCompletionListener {
+            it.seekTo(0) // Сбрасываем позицию на начало
+        }
     }
 
+    // private fun playShutterSound() {
+    //     val shutterSound = R.raw.kwahmah_02_camera2
+    //     val shutterSound = R.raw.benboncan_dslr_click
+    //     val shutterSound = R.raw.the_egyptian_gamedev_camera_shutter // этот не завелся
+        // val mediaPlayer = MediaPlayer.create(this, shutterSound) // 📌 Подключаем звук
+        // mediaPlayer.setOnCompletionListener { it.release() } // ✅ Освобождаем ресурс после воспроизведения
+        // mediaPlayer.start()
+    // }
+    // заменено на
+    private fun playShutterSound() {
+        mediaPlayer?.let {
+            if (!it.isPlaying) {
+                it.start()
+            }
+        }
+    }
 
     // НОВАЯ ФУНКЦИЯ БЕЗ ИСПОЛЬЗОВАНИЯ CLOUDINARY НАПРЯМУЮ
     private fun takePhoto() {
@@ -180,10 +206,6 @@ class CameraActivity : ComponentActivity() {
         camera?.cameraControl?.startFocusAndMetering(action)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        cameraExecutor.shutdown()
-    }
 
 
     private fun checkCameraPermission() {

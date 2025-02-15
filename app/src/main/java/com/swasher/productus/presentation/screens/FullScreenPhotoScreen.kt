@@ -13,6 +13,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -26,7 +27,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-
+import coil.compose.AsyncImagePainter
 import androidx.compose.ui.platform.LocalDensity
 
 
@@ -109,8 +110,20 @@ fun FullScreenPhotoScreen(navController: NavController, imageUrl: String) {
                 .padding(padding)
                 .transformable(state) // ✅ Добавляем поддержку жестов зума и перемещения
         ) {
+
+            val painter = rememberAsyncImagePainter(
+                model = imageUrl,
+                onState = { }
+            )
+
+            if (painter.state is AsyncImagePainter.State.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
             Image(
-                painter = rememberAsyncImagePainter(imageUrl),
+                painter = painter,
                 contentDescription = "Полноразмерное фото",
                 modifier = Modifier
                     .fillMaxSize()
@@ -119,7 +132,7 @@ fun FullScreenPhotoScreen(navController: NavController, imageUrl: String) {
                         scaleY = scale,
                         translationX = offsetX,
                         translationY = offsetY
-                    ) // ✅ Теперь можно перемещать изображение!
+                    )
             )
         }
     }

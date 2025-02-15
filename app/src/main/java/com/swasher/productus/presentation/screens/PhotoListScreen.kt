@@ -45,6 +45,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
@@ -70,7 +71,14 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
     //val allTags = allPhotos.flatMap { it.tags }.toSet().toList()
     //val allFolders = allPhotos.map { it.folder }.toSet().toList()
     // замена на
-    val allTags = photos.flatMap { it.tags }.toSet().toList()
+    // val allTags = photos.flatMap { it.tags }.toSet().toList()
+    // замена для сортироваки по алфавиту (вкл. русский)
+    val allTags = photos.flatMap { it.tags }.toSet().toList().sortedWith(Comparator { a, b ->
+        a.compareTo(b, ignoreCase = true)
+    })
+
+
+
     val allFolders = photos.map { it.folder }.toSet().toList()
 
     var selectedTag by remember { mutableStateOf<String?>(null) }
@@ -109,6 +117,12 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
         viewModel.observePhotos(folderName)
     }
 
+
+
+
+
+
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -123,27 +137,50 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
             )
         },
 
-        /*
-        floatingActionButton = { // ✅ Добавили кнопку "Добавить фото"
-            FloatingActionButton(onClick = {
-                val intent = Intent(navController.context, CameraActivity::class.java).apply {
-                    putExtra("folderName", folderName) // ✅ Передаём текущую папку в камеру
-                }
-                navController.context.startActivity(intent)
-            }) {
-                Icon(Icons.Default.AddAPhoto, contentDescription = "Добавить фото")
-            }
-        }
-        */
+
+
         floatingActionButton = {
-            FloatingActionButton(onClick = {
-                val intent = Intent(context, CameraActivity::class.java)
-                intent.putExtra("FOLDER_NAME", folderName)
-                cameraLauncher.launch(intent)
-            }) {
-                Icon(Icons.Default.AddAPhoto, contentDescription = "Сделать фото")
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            ) {
+                // FAB для локальных фото
+                val galleryLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.GetContent()
+                ) { uri ->
+                    uri?.let {
+                        viewModel.uploadPhotoFromUri(uri, folderName)
+                    }
+                }
+
+                FloatingActionButton(
+                    onClick = { galleryLauncher.launch("image/*") }
+                ) {
+                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = "Добавить из галереи")
+                }
+
+                // FAB для камеры
+                FloatingActionButton(
+                    onClick = {
+                        val intent = Intent(context, CameraActivity::class.java)
+                        intent.putExtra("FOLDER_NAME", folderName)
+                        cameraLauncher.launch(intent)
+                    }
+                ) {
+                    Icon(Icons.Default.AddAPhoto, contentDescription = "Сделать фото")
+                }
             }
         }
+
+        // floatingActionButton = {
+        //     FloatingActionButton(onClick = {
+        //         val intent = Intent(context, CameraActivity::class.java)
+        //         intent.putExtra("FOLDER_NAME", folderName)
+        //         cameraLauncher.launch(intent)
+        //     }) {
+        //         Icon(Icons.Default.AddAPhoto, contentDescription = "Сделать фото")
+        //     }
+        // }
 
 
     ) { padding ->
@@ -200,6 +237,8 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
         }
     }
 }
+
+
 
 
 
