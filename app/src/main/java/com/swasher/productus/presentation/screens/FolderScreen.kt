@@ -36,10 +36,12 @@ fun FolderScreen(navController: NavController)  {
     var showDeleteDialog by remember { mutableStateOf(false) } // ✅ Состояние диалога удаления категории
     var showNewFolderDialog by remember { mutableStateOf(false) }    // dialog для создания категории
     var isDeleting by remember { mutableStateOf(false) }
+    val folderCounts by viewModel.folderCounts.collectAsState()
 
     // 📌 Загружаем список папок при запуске экрана
     LaunchedEffect(Unit) {
         viewModel.loadFolders()
+        viewModel.loadFolderCounts()
     }
 
     Scaffold(
@@ -74,7 +76,21 @@ fun FolderScreen(navController: NavController)  {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(text = folder)
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ){
+                                    Text(text = folder)
+                                    Badge(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    ) {
+                                        Text(
+                                            text = "${folderCounts[folder] ?: 0}",
+                                            color = MaterialTheme.colorScheme.onError
+                                        )
+                                    }
+                                }
 
                                 Row {
                                     IconButton(onClick = {

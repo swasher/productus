@@ -75,14 +75,15 @@ class PhotoViewModel @Inject constructor(
     private val _isUploading = MutableStateFlow(false)
     val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
 
+    private val _folderCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
+    val folderCounts = _folderCounts.asStateFlow()
+
     init {
-        // loadAllPhotos() // ✅ Загружаем коллекцию при запуске
+        loadAllPhotos() // ✅ Загружаем коллекцию при запуске
         observeFolders()
+        observeCollection() //для поиска фото
         Log.d("PhotoViewModel", "ViewModel initialized with hash: ${this.hashCode()}")
     }
-
-
-    // TODO startObservingPhotos и observePhotos наверное надо объеденить(спросить МОСК)
 
     private fun observeFolders() {
         repository.observeFolders(
@@ -92,6 +93,7 @@ class PhotoViewModel @Inject constructor(
     }
 
     fun observePhotos(folder: String) {
+        // наблюдение изменений фото в конкретной папке, например, обновление списка при добавлении фото
         repository.observePhotos(
             folder = folder,
             onUpdate = { _photos.value = it },
@@ -99,6 +101,13 @@ class PhotoViewModel @Inject constructor(
         )
     }
 
+    private fun observeCollection() {
+        // наблюдение изменений фото в коллекции, например, для поиска при добавлении и или обновлении фото
+        repository.observeAllPhotos(
+            onUpdate = { _allPhotos.value = it },
+            onFailure = { it.printStackTrace() }
+        )
+    }
 
 
     private fun loadAllPhotos() {
@@ -108,20 +117,6 @@ class PhotoViewModel @Inject constructor(
         )
     }
 
-    // private fun loadAllPhotos() {
-    //     viewModelScope.launch {
-    //         val userId = auth.currentUser?.uid ?: return@launch
-    //
-    //         firestore.collection("photos")
-    //             .whereEqualTo("userId", userId) // Только фото текущего пользователя
-    //             .get()
-    //             .addOnSuccessListener { snapshot ->
-    //                 allPhotos = snapshot.documents.mapNotNull { doc ->
-    //                     doc.toObject(Photo::class.java)
-    //                 }
-    //             }
-    //     }
-    // }
 
     fun loadPhotos(folder: String) {
         Log.d("PhotoViewModel", "Загружаем фото для папки: $folder") // ✅ Логируем вызов
@@ -251,41 +246,15 @@ class PhotoViewModel @Inject constructor(
 
         val lowerQuery = query.lowercase()
         viewModelScope.launch {
-            // Сначала обновляем коллекцию
-            // ТУТ ОБНОВЛЯТЬ НЕПРАВИЛЬНО!!! ПОТОМУ ЧТО ОБНОВЛЯЕТСЯ ВСЯ КОЛЛЕКЦИЯ ПРИ КАЖДОМ НАЖАТИИ НА КНОПКУ!!!
-            loadAllPhotos()
-
             _searchResults.value = _allPhotos.value.filter { photo ->
                 photo.name.lowercase().contains(lowerQuery) ||
                 photo.comment.lowercase().contains(lowerQuery) ||
                 photo.tags.any { it.lowercase().contains(lowerQuery) }
             }
-            Log.d("PhotoViewModel", "Все фото: ${_allPhotos.value.size}")
-            Log.d("PhotoViewModel", "Найдено фото: ${_searchResults.value.size}")
+            Log.d("PhotoViewModel", "Найдено фото: ${_searchResults.value.size}шт. среди ${_allPhotos.value.size}шт.")
         }
     }
 
-    // fun searchPhotos(query: String) {
-    //     Log.d("PhotoViewModel", "Выполняется поиск: $query")
-    //
-    //     viewModelScope.launch {
-    //         // Сначала обновляем коллекцию
-    //         loadAllPhotos()
-    //
-    //         // Если строка поиска пустая, сбрасываем поиск
-    //         if (query.isBlank()) {
-    //             _searchResults.value = emptyList()
-    //             return@launch
-    //         }
-    //
-    //         // Затем выполняем поиск
-    //         val filtered = allPhotos.filter { photo ->
-    //             photo.description.contains(query, ignoreCase = true) ||
-    //             photo.folder.contains(query, ignoreCase = true)
-    //         }
-    //         _searchResults.value = filtered
-    //     }
-    // }
 
 
     fun uploadPhoto(photoPath: String, folder: String) {
@@ -358,5 +327,13 @@ class PhotoViewModel @Inject constructor(
         return tempFile
     }
 
+    fun loadFolderCounts() {
+        viewModelScope.launch {
+            repository.loadFolderCounts(
+                onUpdate = { counts -> _folderCounts.value = counts },
+                onFailure = { it.printStackTrace() }
+            )
+        }
+    }
 
 }

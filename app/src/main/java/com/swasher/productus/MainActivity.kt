@@ -40,11 +40,10 @@ class MainActivity : ComponentActivity() {
             ProductusTheme {
                 val navController = rememberNavController()
 
-                //val authViewModel: AuthViewModel = viewModel()
                 val authViewModel: AuthViewModel = hiltViewModel()  // ✅ Теперь через Hilt
+                val photoViewModel: PhotoViewModel = hiltViewModel() // ✅ Теперь ViewModel не пересоздается
 
                 val currentUser by authViewModel.currentUser.collectAsState()
-                val photoViewModel: PhotoViewModel = hiltViewModel() // ✅ Теперь ViewModel не пересоздается
 
                 if (currentUser == null) {
                     LoginScreen(navController)
@@ -82,20 +81,19 @@ class MainActivity : ComponentActivity() {
                                 }
 
                                 val photos by photoViewModel.photos.collectAsState()
+                                val searchResults by photoViewModel.searchResults.collectAsState()
 
-                                if (photos.isEmpty()) {
-                                    Text("Фотографии не найдены")
+                                // Ищем фото сначала в результатах поиска, затем в локальной коллекции
+                                val photo = searchResults.find { it.id == photoId }
+                                    ?: photos.find { it.id == photoId }
+
+                                if (photo != null) {
+                                    Log.d("PhotoDetailScreen", "Photo found: $photo")
+                                    PhotoDetailScreen(navController, folderName, photo, photoViewModel)
                                 } else {
-
-                                    val photo = photos.find { it.id == photoId } // Получаем фото из списка
-
-                                    if (photo != null) {
-                                        Log.d("PhotoDetailScreen", "Photo found: $photo")
-                                        PhotoDetailScreen(navController, folderName, photo, photoViewModel)
-                                    } else {
-                                        Text("Фото не найдено")
-                                    }
+                                    Text("Фото не найдено")
                                 }
+
                             }
                             composable("fullScreenPhoto/{imageUrl}") { backStackEntry ->
                                 val imageUrl = backStackEntry.arguments?.getString("imageUrl") ?: ""

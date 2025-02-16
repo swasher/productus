@@ -20,9 +20,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen(navController: NavController, viewModel: PhotoViewModel) {
-
-    // val viewModel: PhotoViewModel = hiltViewModel() // use hilt!
+fun SearchScreen(navController: NavController, viewModel: PhotoViewModel = hiltViewModel()) {
 
     var searchQuery by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
@@ -74,7 +72,11 @@ fun SearchScreen(navController: NavController, viewModel: PhotoViewModel) {
     ) { padding ->
         LazyColumn(modifier = Modifier.padding(padding)) {
             items(searchResults) { photo ->
-                PhotoItem(photo, photo.folder, navController)
+                PhotoItem(
+                    photo,
+                    photo.folder,
+                    navController
+                )
             }
         }
     }

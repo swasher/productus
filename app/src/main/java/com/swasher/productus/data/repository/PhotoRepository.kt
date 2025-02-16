@@ -90,19 +90,6 @@ class PhotoRepository @Inject constructor(
                 onSuccess(photos)
             }
             .addOnFailureListener { onFailure(it) }
-
-
-        // firestore.collection("photos")
-        //     .whereEqualTo("userId", userId) // Только фото текущего пользователя
-        //     .get()
-        //     .addOnSuccessListener { snapshot ->
-        //         val photos = snapshot.documents.mapNotNull { doc ->
-        //             doc.toObject(Photo::class.java)
-        //         }
-        //         onSuccess(photos)
-        //     }
-        //     .addOnFailureListener { onFailure(it) }
-
     }
 
     // Сохраняем фото в конкретную коллекцию (папку)
@@ -228,6 +215,7 @@ class PhotoRepository @Inject constructor(
     }
 
     fun observePhotos(folder: String, onUpdate: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
+        // Наблюдение изменений фото в конкретной папке
         firestore.collection(userFolder).document(folder).collection("Photos")
             .orderBy("createdAt")
             .addSnapshotListener { snapshot, error ->
@@ -241,7 +229,21 @@ class PhotoRepository @Inject constructor(
             }
     }
 
+    fun observeAllPhotos(onUpdate: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
+        // Наблюдение изменений ВСЕХ фото юзера для ПОИСКА
+        firestore.collectionGroup("Photos")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onFailure(error)
+                    return@addSnapshotListener
+                }
 
+                val photos = snapshot?.documents?.mapNotNull {
+                    it.toObject(Photo::class.java)
+                } ?: emptyList()
+                onUpdate(photos)
+            }
+    }
 
     private fun deletePhotosFromCloudinary(photoUrls: List<String>, onComplete: () -> Unit) {
         if (photoUrls.isEmpty()) {
@@ -366,6 +368,35 @@ class PhotoRepository @Inject constructor(
                 }
                 override fun onReschedule(requestId: String, error: ErrorInfo) {}
             }).dispatch()
+    }
+
+
+    fun loadFolderCounts(onUpdate: (Map<String, Int>) -> Unit, onFailure: (Exception) -> Unit) {
+        val counts = mutableMapOf<String, Int>()
+
+        firestore.collection(userFolder)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val folders = snapshot.documents.map { it.id }
+                var completedFolders = 0
+
+                folders.forEach { folder ->
+                    firestore.collection(userFolder)
+                        .document(folder)
+                        .collection("Photos")
+                        .get()
+                        .addOnSuccessListener { photosSnapshot ->
+                            counts[folder] = photosSnapshot.size()
+                            completedFolders++
+
+                            if (completedFolders == folders.size) {
+                                onUpdate(counts)
+                            }
+                        }
+                        .addOnFailureListener { onFailure(it) }
+                }
+            }
+            .addOnFailureListener { onFailure(it) }
     }
 
 }
