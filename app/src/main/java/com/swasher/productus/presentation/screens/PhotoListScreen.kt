@@ -75,7 +75,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
     var selectedTag by remember { mutableStateOf<String?>(null) }
 
-    val isUploading by viewModel.isUploading.collectAsState(initial = false)
+    // val isUploading by viewModel.isUploading.collectAsState(initial = false)
 
     val context = LocalContext.current
 
@@ -101,9 +101,9 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
     }
 
     // DEBUG
-    LaunchedEffect(isUploading) {
-        Log.d("PhotoListScreen", "isUploading changed to: $isUploading")
-    }
+    // LaunchedEffect(isUploading) {
+    //     Log.d("PhotoListScreen", "isUploading changed to: $isUploading")
+    // }
 
     DisposableEffect(Unit) {
         onDispose {

@@ -71,9 +71,10 @@ class PhotoViewModel @Inject constructor(
     private val _searchResults = MutableStateFlow<List<Photo>>(emptyList())
     val searchResults: StateFlow<List<Photo>> = _searchResults.asStateFlow()
 
+    // DEPRECATED
     // для процесса аплоада
-    private val _isUploading = MutableStateFlow(false)
-    val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
+    // private val _isUploading = MutableStateFlow(false)
+    // val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
 
     private val _folderCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val folderCounts = _folderCounts.asStateFlow()
@@ -264,7 +265,7 @@ class PhotoViewModel @Inject constructor(
 
     fun uploadPhoto(photoPath: String, folder: String) {
         Log.d("PhotoViewModel", "Starting upload, isUploading set to true")
-        _isUploading.value = true // ✅ Показываем индикатор
+        // _isUploading.value = true // ✅ Показываем индикатор
 
         // TODO так как кеширование не работает, то это действие не имеет смысла, скорее всего УДАЛИТЬ
         // 📌 Создаём временное фото с локальным путем (кеш)
@@ -288,18 +289,18 @@ class PhotoViewModel @Inject constructor(
                             if (it.imageUrl == "file://$photoPath") it.copy(imageUrl = imageUrl) else it
                         }
 
-                        _isUploading.value = false // ✅ Скрываем индикатор
+                        // _isUploading.value = false // ✅ Скрываем индикатор
                         Log.d("PhotoViewModel", "Finish upload, isUploading set to false")
                     },
                     onFailure = {
                         it.printStackTrace()
                         Log.e("PhotoViewModel", "Ошибка сохранения в Firebase: ${it.message}")
-                        _isUploading.value = false  // Ошибка в Firebase
+                        // _isUploading.value = false  // Ошибка в Firebase
                     }
                 )
             },
             onFailure = {
-                _isUploading.value = false // Ошибка в Cloudinary
+                // _isUploading.value = false // Ошибка в Cloudinary
                 it.printStackTrace()
             }
         )
@@ -308,14 +309,14 @@ class PhotoViewModel @Inject constructor(
 
     fun uploadPhotoFromUri(uri: Uri, folderName: String) {
         viewModelScope.launch {
-            _isUploading.value = true
+            // _isUploading.value = true
             try {
                 val file = createTempFileFromUri(uri)
                 uploadPhoto(file.absolutePath, folderName)
             } catch (e: Exception) {
                 Log.e("PhotoViewModel", "Error uploading local file", e)
             } finally {
-                _isUploading.value = false
+                // _isUploading.value = false
             }
         }
     }
