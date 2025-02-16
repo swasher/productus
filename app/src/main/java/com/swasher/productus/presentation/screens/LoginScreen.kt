@@ -2,8 +2,6 @@ package com.swasher.productus.presentation.screens
 
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -21,6 +19,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,36 +33,48 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.ApiException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.swasher.productus.R
 import com.swasher.productus.presentation.viewmodel.AuthViewModel
-
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+import androidx.credentials.CustomCredential
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewModel()) {
 
     val context = LocalContext.current
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(ApiException::class.java)
-            val idToken = account.idToken
-            if (idToken != null) {
-                Log.d("LoginScreen", "idToken: $idToken, emai: ${account.email}")
-                viewModel.signInWithGoogle(idToken)
-            }
-        } catch (e: ApiException) {
-            Toast.makeText(context, "Ошибка входа: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-
     val currentUser by viewModel.currentUser.collectAsState()
+
+
+    val scope = rememberCoroutineScope()
+    val credentialManager = remember { CredentialManager.create(context) }
+
+
+    // val launcher = rememberLauncherForActivityResult(
+    //     contract = ActivityResultContracts.StartActivityForResult()
+    // ) { result ->
+    //     val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+    //     try {
+    //         val account = task.getResult(ApiException::class.java)
+    //         val idToken = account.idToken
+    //         if (idToken != null) {
+    //             Log.d("LoginScreen", "idToken: $idToken, emai: ${account.email}")
+    //             viewModel.signInWithGoogle(idToken)
+    //         }
+    //     } catch (e: ApiException) {
+    //         Toast.makeText(context, "Ошибка входа: ${e.message}", Toast.LENGTH_SHORT).show()
+    //     }
+    // }
+
+
 
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
@@ -110,16 +122,71 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
                 )
                 Spacer(modifier = Modifier.height(32.dp))
                 Button(
+                    // onClick = {
+                    //     val signInIntent = GoogleSignIn.getClient(
+                    //         context,
+                    //         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                    //             .requestIdToken(context.getString(R.string.default_web_client_id))
+                    //             .requestEmail()
+                    //             .build()
+                    //     ).signInIntent
+                    //     launcher.launch(signInIntent)
+                    // },
+
                     onClick = {
-                        val signInIntent = GoogleSignIn.getClient(
-                            context,
-                            GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                                .requestIdToken(context.getString(R.string.default_web_client_id))
-                                .requestEmail()
-                                .build()
-                        ).signInIntent
-                        launcher.launch(signInIntent)
+                        scope.launch {
+                            try {
+                                val request = GetCredentialRequest(
+                                    listOf(
+                                        GetGoogleIdOption.Builder()
+                                            .setServerClientId(context.getString(R.string.default_web_client_id))
+                                            .build()
+                                    )
+                                )
+
+                                // val result = credentialManager.getCredential(context, request)
+                                // handleSignInResult(result, viewModel)
+
+
+
+
+                                try {
+                                    val result = credentialManager.getCredential(
+                                        context,
+                                        request
+                                    )
+                                    Log.d("LoginScreen", "Got credential result: $result")
+                                    handleSignInResult(result, viewModel)
+                                } catch (e: GetCredentialException) {
+                                    Log.e("LoginScreen", "GetCredentialException", e)
+                                    Toast.makeText(
+                                        context,
+                                        "Credential Error: ${e.message}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } catch (e: Exception) {
+                                    Log.e("LoginScreen", "Unexpected error", e)
+                                    Toast.makeText(
+                                        context,
+                                        "Unexpected error: ${e.message}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+
+
+
+                            } catch (e: GetCredentialException) {
+                                Toast.makeText(
+                                    context,
+                                    "Ошибка входа: ${e.message}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                Log.e("LoginScreen", "Error getting credential", e)
+                            }
+                        }
                     },
+
+
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Login with Google")
@@ -127,4 +194,72 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
             }
         }
     )
+}
+
+// private suspend fun handleSignInResult(
+//     result: GetCredentialResponse,
+//     viewModel: AuthViewModel
+// ) {
+//     val credential = result.credential
+//     if (credential is GoogleIdTokenCredential) {
+//         val idToken = credential.idToken
+//         Log.d("LoginScreen", "idToken: $idToken, email: ${credential.id}")
+//         viewModel.signInWithGoogle(idToken)
+//     }
+// }
+
+
+// private suspend fun handleSignInResult(
+//     result: GetCredentialResponse,
+//     viewModel: AuthViewModel
+// ) {
+//     Log.d("LoginScreen", "Starting handleSignInResult")
+//     val credential = result.credential
+//
+//     when (credential) {
+//         is GoogleIdTokenCredential -> {
+//             Log.d("LoginScreen", "Got GoogleIdTokenCredential")
+//             viewModel.signInWithGoogle(credential.idToken)
+//         }
+//         is CustomCredential -> {
+//             // В новом API CustomCredential используется только для паролей,
+//             // поэтому этот случай можно пропустить
+//             Log.d("LoginScreen", "Unexpected CustomCredential")
+//         }
+//         else -> {
+//             Log.e("LoginScreen", "Unexpected credential type: ${credential?.javaClass?.simpleName}")
+//         }
+//     }
+// }
+
+private suspend fun handleSignInResult(
+    result: GetCredentialResponse,
+    viewModel: AuthViewModel
+) {
+    Log.d("LoginScreen", "Starting handleSignInResult")
+    val credential = result.credential
+
+    when (credential) {
+        is GoogleIdTokenCredential -> {
+            Log.d("LoginScreen", "Got GoogleIdTokenCredential")
+            viewModel.signInWithGoogle(credential.idToken)
+        }
+        is CustomCredential -> {
+            Log.d("LoginScreen", "Got CustomCredential")
+            try {
+                val idToken = credential.data.getString("com.google.android.libraries.identity.googleid.BUNDLE_KEY_ID_TOKEN")
+                if (idToken != null) {
+                    Log.d("LoginScreen", "Successfully extracted token from CustomCredential")
+                    viewModel.signInWithGoogle(idToken)
+                } else {
+                    Log.e("LoginScreen", "No ID token in CustomCredential")
+                }
+            } catch (e: Exception) {
+                Log.e("LoginScreen", "Error extracting token from CustomCredential", e)
+            }
+        }
+        else -> {
+            Log.e("LoginScreen", "Unexpected credential type: ${credential?.javaClass?.simpleName}")
+        }
+    }
 }
