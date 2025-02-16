@@ -28,7 +28,7 @@ fun SearchScreen(navController: NavController, viewModel: PhotoViewModel) {
     val searchResults by viewModel.searchResults.collectAsState()
     val focusRequester = remember { FocusRequester() }
 
-    // Запрашиваем фокус после появления экрана
+    // Запрашиваем фокус в поле ввода после появления экрана
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }

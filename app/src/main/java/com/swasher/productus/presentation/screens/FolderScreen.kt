@@ -35,7 +35,7 @@ fun FolderScreen(navController: NavController)  {
     var folderToDelete by remember { mutableStateOf<String?>(null) } // ✅ Состояние выбранной папки
     var showDeleteDialog by remember { mutableStateOf(false) } // ✅ Состояние диалога удаления категории
     var showNewFolderDialog by remember { mutableStateOf(false) }    // dialog для создания категории
-    var searchQuery by remember { mutableStateOf("") } // ✅ Локальное состояние поиска
+    var isDeleting by remember { mutableStateOf(false) }
 
     // 📌 Загружаем список папок при запуске экрана
     LaunchedEffect(Unit) {
@@ -108,8 +108,10 @@ fun FolderScreen(navController: NavController)  {
                 text = {
                     OutlinedTextField(
                         value = newFolderName,
-                        onValueChange = { newFolderName = it },
-                        label = { Text("Название папки") }
+                        onValueChange = {  newFolderName = it.trim() },
+                        label = { Text("Название папки") },
+                        singleLine = true, // Запрещаем многострочный ввод
+                        maxLines = 1 // Ограничиваем количество строк
                     )
                 },
                 confirmButton = {
@@ -169,25 +171,47 @@ fun FolderScreen(navController: NavController)  {
             AlertDialog(
                 onDismissRequest = { showDeleteDialog = false },
                 title = { Text("Удалить папку?") },
-                text = { Text("Вы уверены, что хотите удалить эту папку и все её фото? Это действие нельзя отменить.") },
+                // text = { Text("Вы уверены, что хотите удалить эту папку и все её фото? Это действие нельзя отменить.") },
+                text = {
+                    Column {
+                        Text("Вы уверены, что хотите удалить эту папку и все её фото? Это действие нельзя отменить.")
+                        if (isDeleting) {
+                            LinearProgressIndicator(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 16.dp)
+                            )
+                        }
+                    }
+                },
                 confirmButton = {
                     Button(
                         onClick = {
+                            isDeleting = true
                             folderToDelete?.let { folder ->
-                                viewModel.deleteFolder(folder, onSuccess = {
-                                    showDeleteDialog = false
-                                    navController.popBackStack("folders", inclusive = false) // ✅ Обновляем список
-                                }, onFailure = {
-                                    showDeleteDialog = false
-                                })
+                                viewModel.deleteFolder(
+                                    folder,
+                                    onSuccess = {
+                                        isDeleting = false
+                                        showDeleteDialog = false
+                                        navController.popBackStack("folders", inclusive = false) // ✅ Обновляем список
+                                    },
+                                    onFailure = {
+                                        isDeleting = false
+                                        showDeleteDialog = false
+                                    })
                             }
-                        }
+                        },
+                        enabled = !isDeleting
                     ) {
                         Text("Удалить")
                     }
                 },
                 dismissButton = {
-                    Button(onClick = { showDeleteDialog = false }) {
+                    Button(
+                        onClick = { showDeleteDialog = false },
+                        enabled = !isDeleting
+                    ) {
                         Text("Отмена")
                     }
                 }

@@ -39,7 +39,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             ProductusTheme {
                 val navController = rememberNavController()
-                val authViewModel: AuthViewModel = viewModel()
+
+                //val authViewModel: AuthViewModel = viewModel()
+                val authViewModel: AuthViewModel = hiltViewModel()  // ✅ Теперь через Hilt
+
                 val currentUser by authViewModel.currentUser.collectAsState()
                 val photoViewModel: PhotoViewModel = hiltViewModel() // ✅ Теперь ViewModel не пересоздается
 
@@ -59,7 +62,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.padding(innerPadding)
                         ) {
                             composable("loginScreen") {
-                                LoginScreen(navController)
+                                LoginScreen(navController, authViewModel)
                             }
                             composable("folders") {
                                 //FolderScreen(navController)
@@ -73,18 +76,6 @@ class MainActivity : ComponentActivity() {
                             composable("photoDetail/{folderName}/{photoId}") { backStackEntry ->
                                 val folderName = backStackEntry.arguments?.getString("folderName") ?: "Unsorted"
                                 val photoId = backStackEntry.arguments?.getString("photoId") ?: ""
-
-                                /* comment by hilt
-                                val viewModel: PhotoViewModel = viewModel(factory = PhotoViewModel.Factory)
-                                val photosState = viewModel.photos.collectAsState() // Получаем State<List<Photo>>
-
-                                LaunchedEffect(folderName) {
-                                    viewModel.loadPhotos(folderName)
-                                }
-
-                                val photos = photosState.value // Получаем List<Photo>
-
-                                 */
 
                                 LaunchedEffect(folderName) {
                                     photoViewModel.loadPhotos(folderName)

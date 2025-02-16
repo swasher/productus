@@ -42,15 +42,13 @@ fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): Stri
 class PhotoRepository @Inject constructor(
     private val firestore: FirebaseFirestore
 )  {
-    //private val firestore = FirebaseFirestore.getInstance()
-    private val photosCollection = firestore.collection("photos")
+
     private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid // ✅ Теперь `userId` хранится здесь
     private val userFolder = "User-$userId"
 
 
     // Теперь отображает папки залогиненного юзера
     fun getFolders(onSuccess: (List<String>) -> Unit, onFailure: (Exception) -> Unit) {
-        // val uid = userId ?: return // Если пользователь не залогинен — ничего не делаем
 
         firestore.collection(userFolder)
             .get()
@@ -83,7 +81,7 @@ class PhotoRepository @Inject constructor(
 
     // Загружаем всю коллекцию локально для полнотекстового поиска
     fun getAllPhotos(onSuccess: (List<Photo>) -> Unit, onFailure: (Exception) -> Unit) {
-        // val uid = userId ?: return
+        val uid = userId ?: return
 
         firestore.collectionGroup("Photos")
             .get()
@@ -92,6 +90,19 @@ class PhotoRepository @Inject constructor(
                 onSuccess(photos)
             }
             .addOnFailureListener { onFailure(it) }
+
+
+        // firestore.collection("photos")
+        //     .whereEqualTo("userId", userId) // Только фото текущего пользователя
+        //     .get()
+        //     .addOnSuccessListener { snapshot ->
+        //         val photos = snapshot.documents.mapNotNull { doc ->
+        //             doc.toObject(Photo::class.java)
+        //         }
+        //         onSuccess(photos)
+        //     }
+        //     .addOnFailureListener { onFailure(it) }
+
     }
 
     // Сохраняем фото в конкретную коллекцию (папку)
@@ -127,23 +138,6 @@ class PhotoRepository @Inject constructor(
     }
 
 
-//    private fun savePhoto(folder: String, imageUrl: String) {
-//        val publicId = imageUrl.substringAfterLast("/").substringBeforeLast(".")
-//        val photo = Photo(
-//            id = publicId,
-//            imageUrl = imageUrl,
-//            folder = folder,
-//            comment = "",
-//            tags = emptyList(),
-//            createdAt = System.currentTimeMillis()
-//        )
-//
-//        FirebaseFirestore.getInstance().collection(userFolder).document(folder).collection("Photos")
-//            .document(publicId)
-//            .set(photo)
-//            .addOnFailureListener { it.printStackTrace() }
-//    }
-//
 
     fun createFolder(folderName: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val uid = userId ?: return // ✅ Если пользователя нет, ничего не делаем
@@ -249,7 +243,7 @@ class PhotoRepository @Inject constructor(
 
 
 
-    fun deletePhotosFromCloudinary(photoUrls: List<String>, onComplete: () -> Unit) {
+    private fun deletePhotosFromCloudinary(photoUrls: List<String>, onComplete: () -> Unit) {
         if (photoUrls.isEmpty()) {
             onComplete() // Если фото нет, просто завершаем
             return
@@ -288,9 +282,6 @@ class PhotoRepository @Inject constructor(
             .document(photoId)
             .delete()
             .addOnSuccessListener {
-                // В пути должно быть PRODUCTUS
-//                val parts = imageUrl.split("/upload/")[1].split("/")
-//                val publicId = parts.drop(1).joinToString("/").substringBeforeLast(".")
                 val publicId = BuildConfig.CLOUDINARY_UPLOAD_DIR + "/" + imageUrl.substringAfterLast("/").substringBeforeLast(".")
 
 

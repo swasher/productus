@@ -62,22 +62,13 @@ import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PhotoListScreen(navController: NavController, folderName: String, viewModel: PhotoViewModel) {
+fun PhotoListScreen(navController: NavController, folderName: String, viewModel: PhotoViewModel = hiltViewModel()) {
 
     val photos by viewModel.filteredPhotos.collectAsState()
 
-    //deprecated val allPhotos by viewModel.photos.collectAsState()
-
-    //val allTags = allPhotos.flatMap { it.tags }.toSet().toList()
-    //val allFolders = allPhotos.map { it.folder }.toSet().toList()
-    // замена на
-    // val allTags = photos.flatMap { it.tags }.toSet().toList()
-    // замена для сортироваки по алфавиту (вкл. русский)
     val allTags = photos.flatMap { it.tags }.toSet().toList().sortedWith(Comparator { a, b ->
         a.compareTo(b, ignoreCase = true)
     })
-
-
 
     val allFolders = photos.map { it.folder }.toSet().toList()
 
@@ -86,8 +77,6 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
     val isUploading by viewModel.isUploading.collectAsState(initial = false)
 
     val context = LocalContext.current
-
-
 
     // Claude: Add state for LazyListState
     val listState = rememberLazyListState()
@@ -99,29 +88,33 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
         }
     }
 
+    // DEBUG Добавим отслеживание состояния
+    LaunchedEffect(Unit) {
+        Log.d("PhotoListScreen", "Screen launched")
+    }
 
+    // DEBUG
+    LaunchedEffect(isUploading) {
+        Log.d("PhotoListScreen", "isUploading changed to: $isUploading")
+    }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
+    ) {
+        // РАНЬШЕ МЫ ЗАПУСКАЛИ UPLOAD ПРЯМО ИЗ CAMERAACTIVITY. ТЕПЕРЬ МЫ ПЕРЕДАЁМ ПУТЬ ФОТО В ЭТОТ ЭКРАН И ЗДЕСЬ ДЕЛАЕМ UPLOAD
+        result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val photoPath = result.data?.getStringExtra("photo_path") ?: return@rememberLauncherForActivityResult
             viewModel.uploadPhoto(photoPath, folderName)
         }
     }
 
-    Log.d("PhotoListScreen", "Вход в экран, фолдер: $folderName")
+    Log.d("PhotoListScreen", "Вход в экран PhotoListScreen, папка: $folderName")
 
     // Устанавливаем текущую папку
     LaunchedEffect(folderName) {
         viewModel.observePhotos(folderName)
     }
-
-
-
-
-
-
 
     Scaffold(
         topBar = {
@@ -137,12 +130,10 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
             )
         },
 
-
-
         floatingActionButton = {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(horizontal = 16.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(horizontal = 8.dp)
             ) {
                 // FAB для локальных фото
                 val galleryLauncher = rememberLauncherForActivityResult(
@@ -172,26 +163,30 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
             }
         }
 
-        // floatingActionButton = {
-        //     FloatingActionButton(onClick = {
-        //         val intent = Intent(context, CameraActivity::class.java)
-        //         intent.putExtra("FOLDER_NAME", folderName)
-        //         cameraLauncher.launch(intent)
-        //     }) {
-        //         Icon(Icons.Default.AddAPhoto, contentDescription = "Сделать фото")
-        //     }
-        // }
-
-
     ) { padding ->
         Column(
             modifier = Modifier.padding(padding).padding(16.dp)
         ) {
 
-            // Индикатор прогресса загрузки в Cloudinary
+            // SPINNER
             if (isUploading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text("Загрузка фото...", modifier = Modifier.align(Alignment.CenterHorizontally))
+                Log.d("PhotoListScreen", "Showing spinner")
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(36.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Загрузка фото...",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
 
 
@@ -222,6 +217,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
                 }
             }
 
+            // СПИСОК ФОТО
             if (photos.isEmpty()) {
                 Text("Нет загруженных фото", modifier = Modifier.padding(16.dp))
             } else {
@@ -239,9 +235,6 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 }
 
 
-
-
-
 @Composable
 fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
     val thumbnailUrl = remember { getThumbnailUrl(photo.imageUrl, width = 200, height = 200) }
@@ -253,7 +246,6 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
             .crossfade(true) // 🔥 Плавное появление изображения
             .build()
     )
-
 
     Card(
         modifier = Modifier
@@ -267,8 +259,6 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
         Column {
             Text(photo.name, modifier = Modifier.padding(6.dp), style = MaterialTheme.typography.titleSmall)
             Image(
-                //painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl)),
-                // painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl, width = 200, height = 200)),
                 painter = painter,
                 contentDescription = "Превью фото",
                 contentScale = ContentScale.Crop,
@@ -296,16 +286,3 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
         }
     }
 }
-
-
-// DEPRECATED
-// @Preview(showBackground = true)
-// @Composable
-// fun PreviewPhotoListScreen() {
-//     val fakeNavController = rememberNavController() // Создаём фейковый NavController
-//     val fakeViewModel = PhotoViewModel() // Создаём фейковый ViewModel
-//     val folderName = "Тестовая папка" // Пример имени папки
-//
-//     PhotoListScreen(navController = fakeNavController, folderName, viewModel = fakeViewModel)
-// }
-

@@ -7,16 +7,22 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import kotlinx.coroutines.coroutineScope
 import com.swasher.productus.data.repository.AuthRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class AuthViewModel : ViewModel() {
-    private val authRepository = AuthRepository()
+
+@HiltViewModel
+class AuthViewModel @Inject constructor(
+    private val authRepository: AuthRepository
+) : ViewModel() {
+
 
 //    private val _currentUser = MutableStateFlow<FirebaseUser?>(authRepository.getCurrentUser()) // ❗ Сначала было: authRepository.getCurrentUser()
-    private val _currentUser = MutableStateFlow<FirebaseUser?>(null)
+//     private val _currentUser = MutableStateFlow<FirebaseUser?>(null)
+    private val _currentUser = MutableStateFlow<FirebaseUser?>(authRepository.getCurrentUser())
+
     val currentUser: StateFlow<FirebaseUser?> = _currentUser.asStateFlow()
 
     init {

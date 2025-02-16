@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.hilt.navigation.compose.hiltViewModel
 
@@ -41,6 +42,8 @@ import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 
 
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import com.swasher.productus.data.repository.getThumbnailUrl
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -99,9 +102,19 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
                 .padding(keyboardPadding),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            val thumbnailUrl = remember { getThumbnailUrl(photo.imageUrl, width = 200, height = 200) }
+            val painter = rememberAsyncImagePainter(
+                ImageRequest.Builder(LocalContext.current)
+                    .data(thumbnailUrl)
+                    .diskCachePolicy(CachePolicy.ENABLED) // 🔥 Включаем кеширование
+                    .memoryCachePolicy(CachePolicy.ENABLED) // 🔥 Кешируем в памяти
+                    .crossfade(true) // 🔥 Плавное появление изображения
+                    .build()
+            )
             Image(
-                painter = rememberAsyncImagePainter(getThumbnailUrl(photo.imageUrl, screenWidth * 1, 200)),
+                painter = painter,
                 contentDescription = "Фото",
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)

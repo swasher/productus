@@ -76,8 +76,9 @@ class PhotoViewModel @Inject constructor(
     val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
 
     init {
-        loadAllPhotos() // ✅ Загружаем коллекцию при запуске
+        // loadAllPhotos() // ✅ Загружаем коллекцию при запуске
         observeFolders()
+        Log.d("PhotoViewModel", "ViewModel initialized with hash: ${this.hashCode()}")
     }
 
 
@@ -97,28 +98,30 @@ class PhotoViewModel @Inject constructor(
             onFailure = { it.printStackTrace() }
         )
     }
-    // fun startObservingPhotos(folder: String) {
-    //     observePhotos(folder)
-    // }
-
-    // При использовании hilt создвать фабрику вручную не требуется, hilt сам создаст фабрику автоматически
-    // DEPRECATED
-    // companion object {
-    //     val Factory: ViewModelProvider.Factory = viewModelFactory {
-    //         initializer {
-    //             PhotoViewModel()
-    //         }
-    //     }
-    // }
 
 
-    // _allPhotos нужно загружать при старте, чтобы можно было локально выполнять поиск по колллекции
+
     private fun loadAllPhotos() {
         repository.getAllPhotos(
             onSuccess = { _allPhotos.value = it },
             onFailure = { it.printStackTrace() }
         )
     }
+
+    // private fun loadAllPhotos() {
+    //     viewModelScope.launch {
+    //         val userId = auth.currentUser?.uid ?: return@launch
+    //
+    //         firestore.collection("photos")
+    //             .whereEqualTo("userId", userId) // Только фото текущего пользователя
+    //             .get()
+    //             .addOnSuccessListener { snapshot ->
+    //                 allPhotos = snapshot.documents.mapNotNull { doc ->
+    //                     doc.toObject(Photo::class.java)
+    //                 }
+    //             }
+    //     }
+    // }
 
     fun loadPhotos(folder: String) {
         Log.d("PhotoViewModel", "Загружаем фото для папки: $folder") // ✅ Логируем вызов
@@ -172,8 +175,6 @@ class PhotoViewModel @Inject constructor(
         )
     }
 
-
-
     fun deletePhoto(folder: String, photoId: String, imageUrl: String) {
         repository.deletePhoto(
             folder = folder,
@@ -183,25 +184,6 @@ class PhotoViewModel @Inject constructor(
             onFailure = { it.printStackTrace() }
         )
     }
-
-
-    // PREVIOUS VERIOSN
-    // fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, name: String, country: String, store: String, price: Float) {
-    //     val cleanedTags = tags.map { it.trim() }.filter { it.isNotBlank() } // ✅ Убираем пустые строки
-    //
-    //     repository.updatePhoto(
-    //         folder = folder, // 📌 Передаём имя коллекции
-    //         photoId = photoId,
-    //         comment = comment,
-    //         tags = cleanedTags,
-    //         name = name,
-    //         country = country,
-    //         store = store,
-    //         price = price,
-    //         onSuccess = { loadPhotos(folder) }, // 📌 Загружаем фото только из нужной папки
-    //         onFailure = { it.printStackTrace() }
-    //     )
-    // }
 
 
     fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, name: String, country: String, store: String, price: Float) {
@@ -217,6 +199,7 @@ class PhotoViewModel @Inject constructor(
             store = store,
             price = price,
             onSuccess = {
+                // todo так как кеширование не работает, то это действие не имеет смысла, скорее всего УДАЛИТЬ
                 // 🔥 Вместо загрузки всех фото просто обновляем локальное состояние
                 _photos.value = _photos.value.map { photo ->
                     if (photo.id == photoId) {
@@ -256,58 +239,8 @@ class PhotoViewModel @Inject constructor(
         _searchResults.value = emptyList()
     }
 
-    // Вариант поиска с возвратом Flow (через запрос к Firestore)
-    /*
-    suspend fun searchPhotos(query: String): Flow<List<Photo>> = flow {
-        if (query.isBlank()) {
-            emit(emptyList<Photo>()) // Если строка пустая, очищаем список
-            return@flow
-        }
 
-        firestore.collectionGroup("Photos") // 📌 Ищем во всех папках
-            .orderBy("name") // 🔍 Улучшает сортировку (но требует индекса)
-            .startAt(query)
-            .endAt(query + "\uf8ff")
-            .get()
-            .addOnSuccessListener { snapshot ->
-                val photos = snapshot.documents.mapNotNull { it.toObject(Photo::class.java) }
-                emit(photos) // ✅ Отправляем список найденных фото
-            }
-            .addOnFailureListener { emit(emptyList<Photo>()) }
-    }.debounce(300) // ⏳ Добавляем задержку 300ms для оптимизации
-    */
-
-
-    // Вариант поиска через запрос к Firestore
-    /*
-    // TODO добавить .debounce(300)
-    suspend fun searchPhotos(query: String) {
-        if (query.isBlank()) {
-            _searchResults.value = emptyList<Photo>() // ✅ Если строка пустая, очищаем список
-            return
-        }
-
-        Log.d("PhotoViewModel", "Поиск: $query")
-
-        try {
-            val snapshot: QuerySnapshot = withContext(Dispatchers.IO) {
-                firestore.collectionGroup("Photos")
-                    .orderBy("name")
-                    .startAt(query)
-                    .endAt(query + "\uf8ff")
-                    .get()
-                    .await()
-            }
-            _searchResults.value = snapshot.documents.mapNotNull { it.toObject(Photo::class.java) }
-            Log.d("PhotoViewModel", "Найдено фото: ${_searchResults.value.size}")
-        } catch (e: Exception) {
-            _searchResults.value = emptyList()
-            Log.e("PhotoViewModel", "Ошибка поиска: ${e.message}")
-        }
-    }
-    */
-
-    // Вариант поиска через предзагруженную коллекцию Firestore
+    // Поиск через предзагруженную коллекцию Firestore
     fun searchPhotos(query: String) {
         Log.d("PhotoViewModel", "Поиск: $query")
 
@@ -318,6 +251,10 @@ class PhotoViewModel @Inject constructor(
 
         val lowerQuery = query.lowercase()
         viewModelScope.launch {
+            // Сначала обновляем коллекцию
+            // ТУТ ОБНОВЛЯТЬ НЕПРАВИЛЬНО!!! ПОТОМУ ЧТО ОБНОВЛЯЕТСЯ ВСЯ КОЛЛЕКЦИЯ ПРИ КАЖДОМ НАЖАТИИ НА КНОПКУ!!!
+            loadAllPhotos()
+
             _searchResults.value = _allPhotos.value.filter { photo ->
                 photo.name.lowercase().contains(lowerQuery) ||
                 photo.comment.lowercase().contains(lowerQuery) ||
@@ -328,33 +265,34 @@ class PhotoViewModel @Inject constructor(
         }
     }
 
+    // fun searchPhotos(query: String) {
+    //     Log.d("PhotoViewModel", "Выполняется поиск: $query")
+    //
+    //     viewModelScope.launch {
+    //         // Сначала обновляем коллекцию
+    //         loadAllPhotos()
+    //
+    //         // Если строка поиска пустая, сбрасываем поиск
+    //         if (query.isBlank()) {
+    //             _searchResults.value = emptyList()
+    //             return@launch
+    //         }
+    //
+    //         // Затем выполняем поиск
+    //         val filtered = allPhotos.filter { photo ->
+    //             photo.description.contains(query, ignoreCase = true) ||
+    //             photo.folder.contains(query, ignoreCase = true)
+    //         }
+    //         _searchResults.value = filtered
+    //     }
+    // }
 
-/*    fun uploadPhoto(photoPath: String, folder: String) {
-        _isUploading.value = true // ✅ Показываем индикатор загрузки
-
-        repository.uploadPhotoToCloudinary(photoPath, folder,
-            onSuccess = { imageUrl ->
-                repository.saveDataToFirebase(
-                    folder,
-                    imageUrl,
-                    onSuccess = { Log.d("CameraActivity", "✅ Фото сохранено в Firebase!")},
-                    onFailure = {
-                        it.printStackTrace()
-                        Log.e("CameraActivity", "Ошибка сохранения фото в Firebase: ${it.message}")
-                    }
-                ) // ✅ Сохраняем в Firestore
-                _isUploading.value = false // ✅ Скрываем индикатор загрузки
-            },
-            onFailure = {
-                _isUploading.value = false
-                it.printStackTrace()
-            }
-        )
-    }*/
 
     fun uploadPhoto(photoPath: String, folder: String) {
+        Log.d("PhotoViewModel", "Starting upload, isUploading set to true")
         _isUploading.value = true // ✅ Показываем индикатор
 
+        // TODO так как кеширование не работает, то это действие не имеет смысла, скорее всего УДАЛИТЬ
         // 📌 Создаём временное фото с локальным путем (кеш)
         val tempPhoto = Photo(
             id = UUID.randomUUID().toString(),
@@ -366,9 +304,7 @@ class PhotoViewModel @Inject constructor(
 
         repository.uploadPhotoToCloudinary(photoPath, folder,
             onSuccess = { imageUrl ->
-                repository.saveDataToFirebase(
-                    folder,
-                    imageUrl,
+                repository.saveDataToFirebase(folder, imageUrl,
                     onSuccess = {
                         Log.d("PhotoViewModel", "✅ Фото сохранено в Firebase!")
 
@@ -378,16 +314,17 @@ class PhotoViewModel @Inject constructor(
                         }
 
                         _isUploading.value = false // ✅ Скрываем индикатор
+                        Log.d("PhotoViewModel", "Finish upload, isUploading set to false")
                     },
                     onFailure = {
                         it.printStackTrace()
                         Log.e("PhotoViewModel", "Ошибка сохранения в Firebase: ${it.message}")
-                        _isUploading.value = false
+                        _isUploading.value = false  // Ошибка в Firebase
                     }
                 )
             },
             onFailure = {
-                _isUploading.value = false
+                _isUploading.value = false // Ошибка в Cloudinary
                 it.printStackTrace()
             }
         )

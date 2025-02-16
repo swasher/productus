@@ -13,18 +13,14 @@ import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.swasher.productus.R
-import com.swasher.productus.presentation.viewmodel.PhotoViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
-import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -32,7 +28,19 @@ import java.util.concurrent.Executors
 @AndroidEntryPoint
 class CameraActivity : ComponentActivity() {
 
-    private val viewModel: PhotoViewModel by viewModels()
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startCamera()
+        } else {
+            Toast.makeText(
+                this,
+                "Camera permission is required to use the camera",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
 
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var previewView: PreviewView
@@ -41,9 +49,11 @@ class CameraActivity : ComponentActivity() {
     private var flashEnabled = false // ✅ Вспышка вкл/выкл
     private var mediaPlayer: MediaPlayer? = null
 
-    private val currentFolder: String by lazy {
-        intent.getStringExtra("FOLDER_NAME") ?: "Unsorted" // ✅ Получаем имя папки
-    }
+    // deprcated
+    // нужно было, когда мы тут делали аплоад
+    // private val currentFolder: String by lazy {
+    //     intent.getStringExtra("FOLDER_NAME") ?: "Unsorted" // ✅ Получаем имя папки
+    // }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -150,15 +160,6 @@ class CameraActivity : ComponentActivity() {
         }
     }
 
-    // private fun playShutterSound() {
-    //     val shutterSound = R.raw.kwahmah_02_camera2
-    //     val shutterSound = R.raw.benboncan_dslr_click
-    //     val shutterSound = R.raw.the_egyptian_gamedev_camera_shutter // этот не завелся
-        // val mediaPlayer = MediaPlayer.create(this, shutterSound) // 📌 Подключаем звук
-        // mediaPlayer.setOnCompletionListener { it.release() } // ✅ Освобождаем ресурс после воспроизведения
-        // mediaPlayer.start()
-    // }
-    // заменено на
     private fun playShutterSound() {
         mediaPlayer?.let {
             if (!it.isPlaying) {
@@ -171,6 +172,9 @@ class CameraActivity : ComponentActivity() {
     private fun takePhoto() {
         val imageCapture = imageCapture ?: return
         val photoFile = File(externalCacheDir, "${System.currentTimeMillis()}.jpg")
+
+        Log.d("CameraActivity", "photoFile: $photoFile")
+
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
 
         imageCapture.takePicture(
@@ -178,17 +182,22 @@ class CameraActivity : ComponentActivity() {
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    // val intent = Intent().apply {
-                    //     putExtra("photo_path", photoFile.absolutePath)
-                    // }
-                    // setResult(RESULT_OK, intent)
 
-                    onPhotoCaptured(photoFile.absolutePath)
+                    // МЫ ПЕРЕДАЕМ ДАННЫЕ НАЗАД В PHOTOLISTSCREEN, ЧТОБЫ ТАМ МОЖНО БЫЛО ОТСЛЕЖИВАТЬ ПРОЦЕСС ЗАГРУЗКИ.
+                    // ЕСЛИ АПЛОАД ВЫЗЫВАТЬ ТУТ, ЭТО ВО ПЕРВЫХ НАРУШАЕТ ПРИНЦИП РАЗДЕЛЕНИЕ ОТВЕТСТВЕННОСТИ, А ВО-ВТОРЫХ
+                    // НЕ ПОЗВОЛЯЕТ ВКЛЮЧИТЬ СПИННЕР ЗАГРУЗКИ.
 
+                    // Для чего-то мы кешировали файл так-же во внутреннее хранилице, который уже закеширован в общее externalCacheDir
+                    // val cachedPhotoPath = savePhotoToCache(File(photoFile.absolutePath)) // ✅ Сохраняем фото в кеш
+                    // Log.d("CameraActivity", "cachedPhotoPath: $cachedPhotoPath")
+
+                    val resultIntent  = Intent()
+                    resultIntent .putExtra("photo_path", photoFile.absolutePath)
+                    setResult(RESULT_OK, resultIntent )
                     playShutterSound()
-
                     finish() // ✅ Закрываем камеру сразу после съемки
 
+                    // тут аплод не делаем! viewModel.uploadPhoto(cachedPhotoPath, currentFolder) // ✅ Передаём в ViewModel
                 }
 
                 override fun onError(exception: ImageCaptureException) {
@@ -207,44 +216,29 @@ class CameraActivity : ComponentActivity() {
     }
 
 
-
     private fun checkCameraPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), CAMERA_PERMISSION_REQUEST_CODE)
-        } else {
-            startCamera() // ✅ Разрешение уже есть, запускаем камеру
+        when {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED -> {
+                startCamera()
+            }
+            else -> {
+                requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
         }
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 1001 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            startCamera() // ✅ Если разрешение получено, запускаем камеру
-        } else {
-            // Разрешение не предоставлено, показываем сообщение пользователю
-            Toast.makeText(this, "Camera permission is required to use the camera", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-
-    private fun savePhotoToCache(photoFile: File): String {
-        val cacheDir = File(cacheDir, "photos")
-        if (!cacheDir.exists()) cacheDir.mkdirs()
-
-        val cachedFile = File(cacheDir, "${UUID.randomUUID()}.jpg")
-        photoFile.copyTo(cachedFile, overwrite = true)
-
-        return cachedFile.absolutePath
-    }
-
-    private fun onPhotoCaptured(photoPath: String) {
-        val cachedPhotoPath = savePhotoToCache(File(photoPath)) // ✅ Сохраняем фото в кеш
-        viewModel.uploadPhoto(cachedPhotoPath, currentFolder) // ✅ Передаём в ViewModel
-    }
-
-    companion object {
-        private const val CAMERA_PERMISSION_REQUEST_CODE = 100
-    }
+    // deprecated
+    // private fun savePhotoToCache(photoFile: File): String {
+    //     val cacheDir = File(cacheDir, "photos")
+    //     if (!cacheDir.exists()) cacheDir.mkdirs()
+    //
+    //     val cachedFile = File(cacheDir, "${UUID.randomUUID()}.jpg")
+    //     photoFile.copyTo(cachedFile, overwrite = true)
+    //
+    //     return cachedFile.absolutePath
+    // }
 
 }
