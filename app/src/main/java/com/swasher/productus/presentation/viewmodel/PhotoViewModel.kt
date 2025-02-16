@@ -78,6 +78,10 @@ class PhotoViewModel @Inject constructor(
     private val _folderCounts = MutableStateFlow<Map<String, Int>>(emptyMap())
     val folderCounts = _folderCounts.asStateFlow()
 
+    // Состояние для хранения поискового запроса, чтобы при возврате на Search сохранялся список поиска
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
     init {
         loadAllPhotos() // ✅ Загружаем коллекцию при запуске
         observeFolders()
@@ -238,6 +242,7 @@ class PhotoViewModel @Inject constructor(
     // Поиск через предзагруженную коллекцию Firestore
     fun searchPhotos(query: String) {
         Log.d("PhotoViewModel", "Поиск: $query")
+        _searchQuery.value = query
 
         if (query.isBlank()) {
             _searchResults.value = emptyList() // ✅ Если строка пустая, сбрасываем поиск

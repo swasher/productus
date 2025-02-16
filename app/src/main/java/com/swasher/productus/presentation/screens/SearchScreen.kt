@@ -22,33 +22,24 @@ import androidx.hilt.navigation.compose.hiltViewModel
 @Composable
 fun SearchScreen(navController: NavController, viewModel: PhotoViewModel = hiltViewModel()) {
 
-    var searchQuery by remember { mutableStateOf("") }
+    //var searchQuery by remember { mutableStateOf("") }
+    val searchQuery by viewModel.searchQuery.collectAsState()
+
     val searchResults by viewModel.searchResults.collectAsState()
     val focusRequester = remember { FocusRequester() }
 
     // Запрашиваем фокус в поле ввода после появления экрана
     LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
-
-    // Вариант для поиска через запрос в Firestore
-    /*
-    LaunchedEffect(searchQuery) {
-        if (searchQuery.isNotBlank()) {
-            viewModel.searchPhotos(searchQuery) // ✅ Асинхронный поиск в Firestore
-            Log.d("SearchScreen", "Поиск: $searchQuery")
-        } else {
-            viewModel.clearSearchResults() // ✅ Очищаем список при пустом вводе
-            Log.d("SearchScreen", "Поиск очищен")
+        if (searchQuery.isEmpty()) {
+            focusRequester.requestFocus()
         }
     }
-    */
+
+
     // Вариант для поиска через предварительную коллекцию Firebase
     LaunchedEffect(searchQuery) {
         viewModel.searchPhotos(searchQuery) // ✅ Запускаем поиск локально
     }
-
-
 
 
     Scaffold(
@@ -57,7 +48,10 @@ fun SearchScreen(navController: NavController, viewModel: PhotoViewModel = hiltV
                 title = {
                     TextField(
                         value = searchQuery,
-                        onValueChange = { searchQuery = it },
+                        // onValueChange = { searchQuery = it },
+                        onValueChange = { query ->
+                            viewModel.searchPhotos(query)
+                        },
                         label = { Text("Поиск...") },
                         modifier = Modifier.fillMaxWidth().focusRequester(focusRequester)
                     )
