@@ -12,5 +12,7 @@ data class Photo(
     val name: String = "",
     val country: String = "",
     val store: String = "",
-    val price: Float = 0.0f
+    val price: Float = 0.0f,
+
+    val isUploading: Boolean = false
 )

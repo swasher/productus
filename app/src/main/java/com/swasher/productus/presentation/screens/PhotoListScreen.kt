@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -179,25 +180,25 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
         ) {
 
             // SPINNER
-            if (isUploading) {
-                Log.d("PhotoListScreen", "Showing spinner")
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(36.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Загрузка фото...",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
+            // if (isUploading) {
+            //     Log.d("PhotoListScreen", "Showing spinner")
+            //     Column(
+            //         modifier = Modifier
+            //             .fillMaxWidth()
+            //             .padding(vertical = 8.dp),
+            //         horizontalAlignment = Alignment.CenterHorizontally
+            //     ) {
+            //         CircularProgressIndicator(
+            //             modifier = Modifier.size(36.dp),
+            //             color = MaterialTheme.colorScheme.primary
+            //         )
+            //         Spacer(modifier = Modifier.height(8.dp))
+            //         Text(
+            //             text = "Загрузка фото...",
+            //             style = MaterialTheme.typography.bodyMedium
+            //         )
+            //     }
+            // }
 
 
             // Фильтр по тегам
@@ -268,14 +269,62 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
     ) {
         Column {
             Text(photo.name, modifier = Modifier.padding(6.dp), style = MaterialTheme.typography.titleSmall)
-            Image(
-                painter = painter,
-                contentDescription = "Превью фото",
-                contentScale = ContentScale.Crop,
+
+
+
+            // Image(
+            //     painter = painter,
+            //     contentDescription = "Превью фото",
+            //     contentScale = ContentScale.Crop,
+            //     modifier = Modifier
+            //         .fillMaxWidth()
+            //         .height(200.dp)
+            // )
+
+
+
+
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-            )
+            ) {
+                Image(
+                    painter = painter,
+                    contentDescription = "Превью фото",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                if (photo.isUploading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(36.dp),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "Загрузка...",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+
+
+
+
 
             Row(
                 modifier = Modifier

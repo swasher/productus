@@ -272,7 +272,8 @@ class PhotoViewModel @Inject constructor(
             id = UUID.randomUUID().toString(),
             imageUrl = "file://$photoPath", // ✅ Временно используем кеш
             folder = folder,
-            createdAt = System.currentTimeMillis()
+            createdAt = System.currentTimeMillis(),
+            isUploading = true  // Устанавливаем флаг загрузки
         )
         _photos.value = _photos.value + tempPhoto // ✅ Добавляем в UI
 

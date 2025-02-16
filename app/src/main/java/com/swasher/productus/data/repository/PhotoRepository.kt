@@ -9,13 +9,9 @@
 
 package com.swasher.productus.data.repository
 
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import com.cloudinary.android.MediaManager
 
-import com.cloudinary.utils.ObjectUtils
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.auth.FirebaseAuth
 import com.swasher.productus.data.model.Photo
@@ -352,10 +348,12 @@ class PhotoRepository @Inject constructor(
 
     fun uploadPhotoToCloudinary(photoPath: String, folder: String, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
         val file = File(photoPath).absolutePath
-        val cloudinaryFolder = BuildConfig.CLOUDINARY_UPLOAD_DIR
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return onFailure(Exception("User not authenticated"))
+        val cloudinaryUploadDir = BuildConfig.CLOUDINARY_UPLOAD_DIR
+        val cloudinaryFolder = "${cloudinaryUploadDir}/USER_${userId}"
 
         val request = MediaManager.get().upload(file)
-            .option("folder", cloudinaryFolder) // todo Тут можно добавить путь, если,например, мы хотим, чтобы у каждого юзера фотки были в отдельной папке
+            .option("folder", cloudinaryFolder)
             .callback(object : UploadCallback {
                 override fun onStart(requestId: String) {}
                 override fun onProgress(requestId: String, bytes: Long, totalBytes: Long) {}

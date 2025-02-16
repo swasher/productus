@@ -238,28 +238,42 @@ private suspend fun handleSignInResult(
 ) {
     Log.d("LoginScreen", "Starting handleSignInResult")
     val credential = result.credential
+    Log.d("LoginScreen", "Credential type: ${credential?.javaClass?.simpleName}")
 
     when (credential) {
         is GoogleIdTokenCredential -> {
             Log.d("LoginScreen", "Got GoogleIdTokenCredential")
-            viewModel.signInWithGoogle(credential.idToken)
+            val token = credential.idToken
+            Log.d("LoginScreen", "Token received: ${token.take(10)}...")
+            viewModel.signInWithGoogle(token)
         }
         is CustomCredential -> {
             Log.d("LoginScreen", "Got CustomCredential")
             try {
-                val idToken = credential.data.getString("com.google.android.libraries.identity.googleid.BUNDLE_KEY_ID_TOKEN")
+                // Попробуем оба возможных ключа
+                var idToken = credential.data.getString("com.google.android.libraries.identity.googleid.BUNDLE_KEY_ID_TOKEN")
+                if (idToken == null) {
+                    idToken = credential.data.getString("idToken")
+                }
+
                 if (idToken != null) {
-                    Log.d("LoginScreen", "Successfully extracted token from CustomCredential")
+                    Log.d("LoginScreen", "Token received: ${idToken.take(10)}...")
                     viewModel.signInWithGoogle(idToken)
                 } else {
-                    Log.e("LoginScreen", "No ID token in CustomCredential")
+                    // Выведем все доступные ключи в бандле
+                    val keys = credential.data.keySet()
+                    Log.e("LoginScreen", "Available keys in CustomCredential: $keys")
+                    throw Exception("ID token not found in credential data")
                 }
             } catch (e: Exception) {
-                Log.e("LoginScreen", "Error extracting token from CustomCredential", e)
+                Log.e("LoginScreen", "Error processing CustomCredential", e)
+                throw e
             }
         }
         else -> {
-            Log.e("LoginScreen", "Unexpected credential type: ${credential?.javaClass?.simpleName}")
+            val error = "Unexpected credential type: ${credential?.javaClass?.simpleName}"
+            Log.e("LoginScreen", error)
+            throw Exception(error)
         }
     }
 }
