@@ -81,6 +81,12 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
     // Claude: Add state for LazyListState
     val listState = rememberLazyListState()
 
+    // Устанавливаем текущую папку
+    LaunchedEffect(folderName) {
+        viewModel.setFilterTag(null)  // Сбрасываем фильтр при входе
+        viewModel.observePhotos(folderName)
+    }
+
     // Claude: Add effect to scroll to top when photos change
     LaunchedEffect(photos.size) {
         if (photos.isNotEmpty()) {
@@ -98,6 +104,13 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
         Log.d("PhotoListScreen", "isUploading changed to: $isUploading")
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.setFilterTag(null)
+        }
+    }
+
+
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
@@ -111,10 +124,7 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
     Log.d("PhotoListScreen", "Вход в экран PhotoListScreen, папка: $folderName")
 
-    // Устанавливаем текущую папку
-    LaunchedEffect(folderName) {
-        viewModel.observePhotos(folderName)
-    }
+
 
     Scaffold(
         topBar = {
