@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -32,6 +34,7 @@ import com.swasher.productus.presentation.viewmodel.AuthViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +44,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 val authViewModel: AuthViewModel = hiltViewModel()  // ✅ Теперь через Hilt
+
                 val photoViewModel: PhotoViewModel = hiltViewModel() // ✅ Теперь ViewModel не пересоздается
 
                 val currentUser by authViewModel.currentUser.collectAsState()

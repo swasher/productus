@@ -39,7 +39,13 @@ class PhotoRepository @Inject constructor(
     private val firestore: FirebaseFirestore
 )  {
 
-    private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid // ✅ Теперь `userId` хранится здесь
+    // private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid // ✅ Теперь `userId` хранится здесь
+    val a = 5
+
+    private val userId: String
+        get() = FirebaseAuth.getInstance().currentUser?.uid
+            ?: throw IllegalStateException("SWASHER FROM PhotoRepository: User must be authenticated to perform this operation")
+
     private val userFolder = "User-$userId"
 
 
@@ -125,7 +131,7 @@ class PhotoRepository @Inject constructor(
     fun createFolder(folderName: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val uid = userId ?: return // ✅ Если пользователя нет, ничего не делаем
 
-        firestore.collection(userFolder) // ✅ Теперь создаем коллекцию внутри "Folders-<userId>"
+        firestore.collection(userFolder) // ✅ Теперь создаем коллекцию внутри "User-<userId>"
             .document(folderName)
             .set(mapOf("createdAt" to System.currentTimeMillis()))
             .addOnSuccessListener { onSuccess() }

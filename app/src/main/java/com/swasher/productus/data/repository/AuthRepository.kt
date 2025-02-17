@@ -22,7 +22,7 @@ class AuthRepository {
                 if (task.isSuccessful) {
                     val user = task.result?.user
                     if (user != null) {
-                        Log.d("AuthRepository", "Успешный вход: ${user.email}")
+                        Log.d("AuthRepository", "Успешный вход: uid=${user.uid}, email=${user.email}")
                         saveUserToFirestore(user)
                         onSuccess(user)
                     } else {
