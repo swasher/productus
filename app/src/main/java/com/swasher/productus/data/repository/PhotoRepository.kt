@@ -36,18 +36,22 @@ fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): Stri
 
 @Singleton
 class PhotoRepository @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val authRepository: AuthRepository
 )  {
 
     // private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid // ✅ Теперь `userId` хранится здесь
     val a = 5
 
+    // private val userId: String
+    //     get() = FirebaseAuth.getInstance().currentUser?.uid
+    //         ?: throw IllegalStateException("SWASHER FROM PhotoRepository: User must be authenticated to perform this operation")
+
     private val userId: String
-        get() = FirebaseAuth.getInstance().currentUser?.uid
-            ?: throw IllegalStateException("SWASHER FROM PhotoRepository: User must be authenticated to perform this operation")
+        get() = authRepository.getCurrentUser().toString()
 
-    private val userFolder = "User-$userId"
-
+    private val userFolder: String
+        get() = "User-$userId"
 
     // Теперь отображает папки залогиненного юзера
     fun getFolders(onSuccess: (List<String>) -> Unit, onFailure: (Exception) -> Unit) {
