@@ -201,7 +201,7 @@ class PhotoViewModel @Inject constructor(
     }
 
 
-    fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, name: String, country: String, store: String, price: Float) {
+    fun updatePhoto(folder: String, photoId: String, comment: String, tags: List<String>, name: String, country: String, store: String, price: Float, rating: Int) {
         val cleanedTags = tags.map { it.trim() }.filter { it.isNotBlank() } // ✅ Убираем пустые строки
 
         repository.updatePhoto(
@@ -213,6 +213,7 @@ class PhotoViewModel @Inject constructor(
             country = country,
             store = store,
             price = price,
+            rating = rating,
             onSuccess = {
                 // todo так как кеширование не работает, то это действие не имеет смысла, скорее всего УДАЛИТЬ
                 // 🔥 Вместо загрузки всех фото просто обновляем локальное состояние
@@ -224,7 +225,8 @@ class PhotoViewModel @Inject constructor(
                             name = name,
                             country = country,
                             store = store,
-                            price = price
+                            price = price,
+                            rating = rating,
                         )
                     } else photo
                 }

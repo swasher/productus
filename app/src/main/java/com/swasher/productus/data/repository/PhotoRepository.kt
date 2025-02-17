@@ -30,7 +30,8 @@ import javax.inject.Singleton
 fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): String {
     // c_auto - автоматески подгоняет под размер
     // g_auto - gravity, в центрирует по сюжету
-    return imageUrl.replace("/upload/", "/upload/w_${width},h_${height},c_auto,g_auto/")
+    // return imageUrl.replace("/upload/", "/upload/w_${width},h_${height},c_auto,g_auto/")
+    return imageUrl.replace("/upload/", "/upload/w_${width},h_${height},c_fit/")
 }
 
 
@@ -40,17 +41,9 @@ class PhotoRepository @Inject constructor(
     private val authRepository: AuthRepository
 )  {
 
-    // private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid // ✅ Теперь `userId` хранится здесь
-    val a = 5
-
-    // private val userId: String
-    //     get() = FirebaseAuth.getInstance().currentUser?.uid
-    //         ?: throw IllegalStateException("SWASHER FROM PhotoRepository: User must be authenticated to perform this operation")
-
     private val userId: String
         get() = authRepository.getCurrentUser()?.uid
             ?: throw IllegalStateException("User must be authenticated to perform this operation")
-
 
     private val userFolder: String
         get() = "User-$userId"
@@ -189,6 +182,7 @@ class PhotoRepository @Inject constructor(
         country: String,
         store: String,
         price: Float,
+        rating: Int,
 
         onSuccess: () -> Unit,
         onFailure: (Exception) -> Unit
@@ -200,6 +194,7 @@ class PhotoRepository @Inject constructor(
             "country" to country,
             "store" to store,
             "price" to price,
+            "rating" to rating,
         )
 
         firestore.collection(userFolder).document(folder).collection("Photos")

@@ -13,6 +13,7 @@ data class Photo(
     val country: String = "",
     val store: String = "",
     val price: Float = 0.0f,
+    val rating: Int = 0, // значение от 0 до 5
 
     // подавить предупреждения о доступе к полю. Эта аннотация указывает компилятору, что поле должно быть доступно напрямую, без геттера.
     @JvmField

@@ -29,6 +29,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -124,6 +126,35 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
                     }
             )
 
+
+            // В PhotoDetailScreen.kt внутри формы редактирования
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Рейтинг:", style = MaterialTheme.typography.bodyMedium)
+                RatingBar(
+                    rating = photo.rating,
+                    onRatingChanged = { newRating ->
+                        viewModel.updatePhoto(
+                            folder = folderName,
+                            photoId = photo.id,
+                            comment = photo.comment,
+                            tags = photo.tags,
+                            name = photo.name,
+                            country = photo.country,
+                            store = photo.store,
+                            price = photo.price,
+                            rating = newRating
+                        )
+                    }
+                )
+            }
+
+
             OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Название") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = comment, onValueChange = { comment = it }, label = { Text("Комментарий:") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = tags, onValueChange = { tags = it }, label = { Text("Теги (через запятую):") }, modifier = Modifier.fillMaxWidth())
@@ -133,7 +164,7 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
 
             Button(
                 onClick = {
-                    viewModel.updatePhoto(folderName, photo.id, comment,  tags.split(","),  name, country, store, price.toFloat())
+                    viewModel.updatePhoto(folderName, photo.id, comment,  tags.split(","),  name, country, store, price.toFloat(), photo.rating)
                     navController.popBackStack()
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -178,4 +209,40 @@ fun PhotoDetailScreen(navController: NavController, folderName: String, photo: P
 //    PhotoDetailScreen(NavController(LocalContext.current), "DefaultFolder", Photo(id = "1", imageUrl = "https://placehold.co/200"))
 //}
 
+@Composable
+fun RatingBar(
+    rating: Int,
+    onRatingChanged: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
 
+        // Кнопка сброса
+        IconButton(
+            onClick = { onRatingChanged(0) },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = "Сбросить рейтинг",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(14.dp)
+            )
+        }
+
+        for (i in 1..5) {
+            Icon(
+                imageVector = if (i <= rating) Icons.Filled.Star else Icons.Filled.StarBorder,
+                contentDescription = "Звезда $i",
+                modifier = Modifier
+                    .size(32.dp)
+                    .clickable { onRatingChanged(i) },
+                tint = if (i <= rating) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+            )
+        }
+    }
+}

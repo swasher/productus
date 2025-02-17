@@ -50,6 +50,7 @@ import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImagePainter
 import coil.request.CachePolicy
@@ -272,7 +273,33 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column {
-            Text(photo.name, modifier = Modifier.padding(6.dp), style = MaterialTheme.typography.titleSmall)
+
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp), // Добавляем отступы
+                horizontalArrangement = Arrangement.SpaceBetween // Распределяем пространство между элементами
+            ) {
+                Text(photo.name, style = MaterialTheme.typography.titleSmall)
+
+                if (photo.rating > 0) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.Start
+                    ) {
+                        repeat(photo.rating) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+
 
             Box(
                 modifier = Modifier
@@ -312,9 +339,6 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
                     }
                 }
             }
-
-
-
 
 
             Row(
