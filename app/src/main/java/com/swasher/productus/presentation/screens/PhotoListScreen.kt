@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImagePainter
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 
@@ -258,6 +259,9 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
             .build()
     )
 
+    // Получаем текущее состояние загрузки изображения
+    val isLoading = painter.state is AsyncImagePainter.State.Loading
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -269,20 +273,6 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
     ) {
         Column {
             Text(photo.name, modifier = Modifier.padding(6.dp), style = MaterialTheme.typography.titleSmall)
-
-
-
-            // Image(
-            //     painter = painter,
-            //     contentDescription = "Превью фото",
-            //     contentScale = ContentScale.Crop,
-            //     modifier = Modifier
-            //         .fillMaxWidth()
-            //         .height(200.dp)
-            // )
-
-
-
 
             Box(
                 modifier = Modifier
@@ -296,7 +286,8 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
                     modifier = Modifier.fillMaxSize()
                 )
 
-                if (photo.isUploading) {
+                // Показываем спиннер либо при загрузке в Cloudinary, либо при загрузке из Cloudinary
+                if (photo.isUploading || isLoading) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -313,7 +304,7 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Загрузка...",
+                                text = if (photo.isUploading) "Загрузка..." else "Скачивание...",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
