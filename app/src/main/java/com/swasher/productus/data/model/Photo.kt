@@ -14,5 +14,7 @@ data class Photo(
     val store: String = "",
     val price: Float = 0.0f,
 
+    // подавить предупреждения о доступе к полю. Эта аннотация указывает компилятору, что поле должно быть доступно напрямую, без геттера.
+    @JvmField
     val isUploading: Boolean = false
 )

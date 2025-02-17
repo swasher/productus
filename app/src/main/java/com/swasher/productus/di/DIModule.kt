@@ -5,6 +5,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Singleton
 
 @Module
@@ -15,5 +17,24 @@ object FirebaseModule {
     @Singleton
     fun provideFirebaseFirestore(): FirebaseFirestore {
         return FirebaseFirestore.getInstance()
+    }
+}
+
+
+// Новый модуль для AuthScope
+@Module
+@InstallIn(SingletonComponent::class)
+object AuthScopeModule {
+    @Provides
+    @Singleton
+    fun provideAuthScope(): AuthScope = AuthScope()
+}
+
+class AuthScope {
+    private val _isAuthenticated = MutableStateFlow<String?>(null)
+    val isAuthenticated = _isAuthenticated.asStateFlow()
+
+    fun setUserId(userId: String?) {
+        _isAuthenticated.value = userId
     }
 }

@@ -48,7 +48,9 @@ class PhotoRepository @Inject constructor(
     //         ?: throw IllegalStateException("SWASHER FROM PhotoRepository: User must be authenticated to perform this operation")
 
     private val userId: String
-        get() = authRepository.getCurrentUser().toString()
+        get() = authRepository.getCurrentUser()?.uid
+            ?: throw IllegalStateException("User must be authenticated to perform this operation")
+
 
     private val userFolder: String
         get() = "User-$userId"

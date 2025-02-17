@@ -19,19 +19,16 @@ import com.swasher.productus.data.repository.PhotoRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.SharingStarted
 
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
-import dagger.hilt.android.internal.Contexts.getApplication
+import com.swasher.productus.di.AuthScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
 import java.io.File
 import java.util.UUID
 import javax.inject.Inject
@@ -40,14 +37,18 @@ import javax.inject.Inject
 @HiltViewModel
 class PhotoViewModel @Inject constructor(
     private val repository: PhotoRepository,
+    private val authScope: AuthScope,
     private val application: Application // Добавляем инъекцию Application
 ) : ViewModel()  {
+
+    private val _isInitialized = MutableStateFlow(false)
+
     // private val repository = PhotoRepository()
     // private val firestore = FirebaseFirestore.getInstance()
     private val userId: String?get() = FirebaseAuth.getInstance().currentUser?.uid
     private val userFolder = "User-$userId"
 
-    // для отбора фото внутри папки
+    // для фильтрации фото внутри папки
     private val _photos = MutableStateFlow<List<Photo>>(emptyList())
     val photos: StateFlow<List<Photo>> = _photos.asStateFlow()
 
@@ -84,6 +85,20 @@ class PhotoViewModel @Inject constructor(
     val searchQuery = _searchQuery.asStateFlow()
 
     init {
+
+        viewModelScope.launch {
+            authScope.isAuthenticated
+                .filterNotNull()
+                .collectLatest { userId ->
+                    if (!_isInitialized.value) {
+                        initializeData()
+                        _isInitialized.value = true
+                    }
+                }
+        }
+    }
+
+    private fun initializeData() {
         loadAllPhotos() // ✅ Загружаем коллекцию при запуске
         observeFolders()
         observeCollection() //для поиска фото
