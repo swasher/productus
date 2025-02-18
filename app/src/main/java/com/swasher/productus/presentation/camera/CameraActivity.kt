@@ -42,6 +42,7 @@ class CameraActivity : ComponentActivity() {
         }
     }
 
+    private lateinit var cameraProvider: ProcessCameraProvider
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var previewView: PreviewView
     private var imageCapture: ImageCapture? = null
@@ -123,11 +124,10 @@ class CameraActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        cameraProvider?.unbindAll()
         cameraExecutor.shutdown()
         mediaPlayer?.release() // Освобождаем ресурсы при уничтожении активити
         mediaPlayer = null
-        super.onDestroy()
-        cameraExecutor.shutdown()
     }
 
 
@@ -135,7 +135,7 @@ class CameraActivity : ComponentActivity() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+            cameraProvider = cameraProviderFuture.get()
 
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(previewView.surfaceProvider)

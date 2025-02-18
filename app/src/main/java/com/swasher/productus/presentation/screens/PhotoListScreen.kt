@@ -77,8 +77,6 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
 
     var selectedTag by remember { mutableStateOf<String?>(null) }
 
-    // val isUploading by viewModel.isUploading.collectAsState(initial = false)
-
     val context = LocalContext.current
 
     // Claude: Add state for LazyListState
@@ -180,28 +178,6 @@ fun PhotoListScreen(navController: NavController, folderName: String, viewModel:
         Column(
             modifier = Modifier.padding(padding).padding(16.dp)
         ) {
-
-            // SPINNER
-            // if (isUploading) {
-            //     Log.d("PhotoListScreen", "Showing spinner")
-            //     Column(
-            //         modifier = Modifier
-            //             .fillMaxWidth()
-            //             .padding(vertical = 8.dp),
-            //         horizontalAlignment = Alignment.CenterHorizontally
-            //     ) {
-            //         CircularProgressIndicator(
-            //             modifier = Modifier.size(36.dp),
-            //             color = MaterialTheme.colorScheme.primary
-            //         )
-            //         Spacer(modifier = Modifier.height(8.dp))
-            //         Text(
-            //             text = "Загрузка фото...",
-            //             style = MaterialTheme.typography.bodyMedium
-            //         )
-            //     }
-            // }
-
 
             // Фильтр по тегам
             LazyRow {
@@ -314,7 +290,7 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
                 )
 
                 // Показываем спиннер либо при загрузке в Cloudinary, либо при загрузке из Cloudinary
-                if (photo.isUploading || isLoading) {
+                if (photo.uploadProcessing || isLoading) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -331,7 +307,7 @@ fun PhotoItem(photo: Photo, folderName: String, navController: NavController) {
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = if (photo.isUploading) "Загрузка..." else "Скачивание...",
+                                text = if (photo.uploadProcessing) "Загрузка..." else "Скачивание...",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )

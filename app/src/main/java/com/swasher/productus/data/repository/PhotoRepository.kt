@@ -386,22 +386,30 @@ class PhotoRepository @Inject constructor(
                 var completedFolders = 0
 
                 folders.forEach { folder ->
+                    Log.d("PhotoRepository", "Чтение папки: $folder")
                     firestore.collection(userFolder)
                         .document(folder)
                         .collection("Photos")
                         .get()
                         .addOnSuccessListener { photosSnapshot ->
                             counts[folder] = photosSnapshot.size()
+                            Log.d("PhotoRepository", "Папка: $folder, Количество фото: ${photosSnapshot.size()}")
                             completedFolders++
 
                             if (completedFolders == folders.size) {
                                 onUpdate(counts)
                             }
                         }
-                        .addOnFailureListener { onFailure(it) }
+                        .addOnFailureListener {
+                            Log.e("PhotoRepository", "Ошибка чтения фото в папке: $folder", it)
+                            onFailure(it)
+                        }
                 }
             }
-            .addOnFailureListener { onFailure(it) }
+            .addOnFailureListener {
+                Log.e("PhotoRepository", "Ошибка чтения папок", it) // Логируем ошибку
+                onFailure(it)
+            }
     }
 
 }
