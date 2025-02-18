@@ -144,12 +144,6 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
                                     )
                                 )
 
-                                // val result = credentialManager.getCredential(context, request)
-                                // handleSignInResult(result, viewModel)
-
-
-
-
                                 try {
                                     val result = credentialManager.getCredential(
                                         context,

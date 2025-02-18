@@ -37,22 +37,6 @@ class AuthViewModel @Inject constructor(
         authScope.setUserId(user.uid)
     }
 
-    // ЧТО  ДЕЛАТЬ С ЭТИМ КОДОМ, КОТОРЫЙ ПОЛУЧАЛ ЮЗЕРА
-    // ===============================================
-
-    //  private val _currentUser = MutableStateFlow<FirebaseUser?>(authRepository.getCurrentUser()) // ❗ Сначала было: authRepository.getCurrentUser()
-    //  private val _currentUser = MutableStateFlow<FirebaseUser?>(null)
-
-    // private val _currentUser = MutableStateFlow<FirebaseUser?>(authRepository.getCurrentUser())
-    // val currentUser: StateFlow<FirebaseUser?> = _currentUser.asStateFlow()
-    // init {
-    //     _currentUser.value = authRepository.getCurrentUser() // ✅ Устанавливаем пользователя при старте
-    // }
-
-    // ===============================================
-
-
-
 
     fun signInWithGoogle(idToken: String) {
         Log.d("AuthViewModel", "signInWithGoogle вызван с idToken: $idToken")

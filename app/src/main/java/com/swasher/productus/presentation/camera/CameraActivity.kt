@@ -135,18 +135,29 @@ class CameraActivity : ComponentActivity() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
-            cameraProvider = cameraProviderFuture.get()
-
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
-            }
-
-            imageCapture = ImageCapture.Builder().build()
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
             try {
-                cameraProvider.unbindAll()
-                camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
+                cameraProvider = cameraProviderFuture.get()
+                cameraProvider?.unbindAll() // Сначала освобождаем существующие привязки
+
+                val preview = Preview.Builder()
+                    .setTargetRotation(previewView.display.rotation) // Учитываем ротацию
+                    .build()
+                    .also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
+
+                imageCapture = ImageCapture.Builder()
+                    .setTargetRotation(previewView.display.rotation) // Учитываем ротацию
+                    .build()
+
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
+                camera = cameraProvider?.bindToLifecycle(
+                    this,
+                    cameraSelector,
+                    preview,
+                    imageCapture
+                )
             } catch (exc: Exception) {
                 Log.e("CameraActivity", "Ошибка запуска камеры", exc)
             }
