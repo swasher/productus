@@ -11,6 +11,7 @@ build/
 local.properties
 .env
 google-services.json
+keystore.properties
 
 # Android Studio specific files
 .idea/
@@ -92,3 +93,4 @@ build/
 */outputs/
 */intermediates/
 */generated/
+app/release/
