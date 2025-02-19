@@ -46,6 +46,8 @@ import com.swasher.productus.presentation.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import androidx.credentials.CustomCredential
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialInterruptedException
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewModel()) {
@@ -140,6 +142,8 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
                                     listOf(
                                         GetGoogleIdOption.Builder()
                                             .setServerClientId(context.getString(R.string.default_web_client_id))
+                                            .setFilterByAuthorizedAccounts(false) // Позволяет показывать все аккаунты
+                                            .setAutoSelectEnabled(true) // Автоматически выбирает аккаунт, если возможно
                                             .build()
                                     )
                                 )
@@ -166,7 +170,27 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
-
+                                // try {
+                                //     val result = credentialManager.getCredential(context, request)
+                                //     Log.d("LoginScreen", "Got credential result: $result")
+                                //     handleSignInResult(result, viewModel)
+                                // } catch (e: GetCredentialException) {
+                                //     when (e) {
+                                //         is GetCredentialCancellationException -> {
+                                //             Log.d("LoginScreen", "User cancelled the flow")
+                                //             // Тихая обработка отмены пользователем
+                                //             Toast.makeText(context, "User cancel: ${e.message}", Toast.LENGTH_SHORT).show()
+                                //         }
+                                //         is GetCredentialInterruptedException -> {
+                                //             Log.e("LoginScreen", "Authentication was interrupted", e)
+                                //             Toast.makeText(context, "Authentication was interrupted", Toast.LENGTH_SHORT).show()
+                                //         }
+                                //         else -> {
+                                //             Log.e("LoginScreen", "GetCredentialException", e)
+                                //             Toast.makeText(context, "Authentication error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                //         }
+                                //     }
+                                // }
 
 
                             } catch (e: GetCredentialException) {
