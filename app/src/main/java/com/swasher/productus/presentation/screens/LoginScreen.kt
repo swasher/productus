@@ -48,6 +48,7 @@ import org.json.JSONObject
 import androidx.credentials.CustomCredential
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialInterruptedException
+import com.swasher.productus.BuildConfig
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewModel()) {
@@ -75,6 +76,8 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
     //         Toast.makeText(context, "Ошибка входа: ${e.message}", Toast.LENGTH_SHORT).show()
     //     }
     // }
+
+
 
 
 
@@ -141,7 +144,8 @@ fun LoginScreen(navController: NavController, viewModel: AuthViewModel = viewMod
                                 val request = GetCredentialRequest(
                                     listOf(
                                         GetGoogleIdOption.Builder()
-                                            .setServerClientId(context.getString(R.string.default_web_client_id))
+                                            // .setServerClientId(context.getString(R.string.default_web_client_id))
+                                            .setServerClientId(BuildConfig.DEFAULT_WEB_CLIENT_ID)
                                             .setFilterByAuthorizedAccounts(false) // Позволяет показывать все аккаунты
                                             .setAutoSelectEnabled(true) // Автоматически выбирает аккаунт, если возможно
                                             .build()

@@ -40,6 +40,7 @@ android {
         buildConfigField("String", "CLOUDINARY_API_KEY", "\"${localProperties.getProperty("CLOUDINARY_API_KEY", "")}\"")
         buildConfigField("String", "CLOUDINARY_API_SECRET", "\"${localProperties.getProperty("CLOUDINARY_API_SECRET", "")}\"")
         buildConfigField("String", "CLOUDINARY_UPLOAD_DIR", "\"${localProperties.getProperty("CLOUDINARY_UPLOAD_DIR", "default_folder")}\"")
+        buildConfigField("String", "DEFAULT_WEB_CLIENT_ID", "\"${localProperties.getProperty("DEFAULT_WEB_CLIENT_ID", "")}\"")
     }
 
     buildTypes {
@@ -114,7 +115,7 @@ dependencies {
     // UI
     implementation("androidx.compose.ui:ui:1.4.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.compose.material:material-icons-extended:1.7.7")
+    implementation("androidx.compose.material:material-icons-extended:1.7.8")
     implementation("androidx.activity:activity-compose:1.6.0")
 
     // Navigation

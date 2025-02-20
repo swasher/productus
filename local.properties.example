@@ -10,3 +10,4 @@ CLOUDINARY_CLOUD_NAME=your_user
 CLOUDINARY_API_KEY=9***********8
 CLOUDINARY_API_SECRET=0****************N-s*****Q
 CLOUDINARY_UPLOAD_DIR=<DIRECTORY-NAME>
+DEFAULT_WEB_CLIENT_ID=from google OAuth2 -> Web_client (auto created by Google Service)
