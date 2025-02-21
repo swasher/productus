@@ -38,12 +38,17 @@ fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): Stri
 @Singleton
 class PhotoRepository @Inject constructor(
     private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth,
     private val authRepository: AuthRepository
 )  {
-
+    // напрямую через auth: FirebaseAuth - работает
     private val userId: String
-        get() = authRepository.getCurrentUser()?.uid
+        get() = auth.currentUser?.uid
             ?: throw IllegalStateException("User must be authenticated to perform this operation")
+    // Скорее всего, определение юзера через authRepository не работает из-за циклической зависимости: PhotoRepository -> AuthRepository -> PhotoRepository
+    // private val userId: String
+    //     get() = authRepository.getCurrentUser()?.uid
+    //         ?: throw IllegalStateException("User must be authenticated to perform this operation")
 
     private val userFolder: String
         get() = "User-$userId"

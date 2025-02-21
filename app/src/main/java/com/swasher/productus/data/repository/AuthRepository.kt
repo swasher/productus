@@ -5,19 +5,26 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
+import javax.inject.Inject
 
 
-class AuthRepository {
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val firestore = FirebaseFirestore.getInstance()
+class AuthRepository @Inject constructor(
+    private val auth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
+) {
 
     fun getCurrentUser(): FirebaseUser? = auth.currentUser
 
-
-    fun signInWithGoogle(idToken: String, onSuccess: (FirebaseUser) -> Unit, onFailure: (Exception) -> Unit) {
+    // вход через Google
+    fun signInWithGoogle(
+        idToken: String,
+        onSuccess: (FirebaseUser) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        Log.d("AuthRepository", "Starting Google sign in with token")
         val credential = GoogleAuthProvider.getCredential(idToken, null)
 
-        FirebaseAuth.getInstance().signInWithCredential(credential)
+        auth.signInWithCredential(credential)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
                     val user = task.result?.user
@@ -36,6 +43,7 @@ class AuthRepository {
             }
     }
 
+    // Сохранение пользователя в Firestore
     private fun saveUserToFirestore(user: FirebaseUser) {
         val userRef = firestore.collection("Users").document(user.uid)
         userRef.get().addOnSuccessListener { doc ->
@@ -52,6 +60,7 @@ class AuthRepository {
         }
     }
 
+    // Logout
     fun signOut() {
         auth.signOut()
     }
