@@ -25,7 +25,7 @@ import com.cloudinary.android.callback.UploadCallback
 import com.cloudinary.android.callback.ErrorInfo
 import javax.inject.Inject
 import javax.inject.Singleton
-
+import com.swasher.productus.utils.CloudinaryUtils
 
 fun getThumbnailUrl(imageUrl: String, width: Int = 200, height: Int = 200): String {
     // c_auto - автоматески подгоняет под размер
@@ -253,38 +253,41 @@ class PhotoRepository @Inject constructor(
             }
     }
 
-    private fun deletePhotosFromCloudinary(photoUrls: List<String>, onComplete: () -> Unit) {
-        if (photoUrls.isEmpty()) {
-            onComplete() // Если фото нет, просто завершаем
-            return
-        }
-
-        val publicIds = photoUrls.map { url ->
-            BuildConfig.CLOUDINARY_UPLOAD_DIR + "/" + url.substringAfterLast("/").substringBeforeLast(".") // ✅ Добавляем путь
-        }
-
-        Log.d("PhotoRepository", "Удаляем фото из Cloudinary: $publicIds") // ✅ Логируем удаляемые файлы
-
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val deleteResults = publicIds.map { publicId ->
-                    MediaManager.get().cloudinary.uploader().destroy(publicId, null)
-                }
-
-                val successfulDeletes = deleteResults.count { it?.get("result") == "ok" }
-                Log.d("PhotoRepository", "Успешно удалено фото: $successfulDeletes из ${publicIds.size}")
-
-                withContext(Dispatchers.Main) {
-                    onComplete()
-                }
-            } catch (e: Exception) {
-                Log.e("PhotoRepository", "Ошибка массового удаления из Cloudinary: ${e.message}", e)
-                withContext(Dispatchers.Main) {
-                    onComplete()
-                }
-            }
-        }
-    }
+    // private fun deletePhotosFromCloudinary(photoUrls: List<String>, onComplete: () -> Unit) {
+    //     if (photoUrls.isEmpty()) {
+    //         onComplete() // Если фото нет, просто завершаем
+    //         return
+    //     }
+    //
+    //     // val publicIds = photoUrls.map { url ->
+    //     //     BuildConfig.CLOUDINARY_UPLOAD_DIR + "/" + url.substringAfterLast("/").substringBeforeLast(".") // ✅ Добавляем путь
+    //     // }
+    //     val publicIds = photoUrls.map { url ->
+    //         CloudinaryUtils.extractPublicId(url)
+    //     }
+    //
+    //     Log.d("PhotoRepository", "Удаляем фото из Cloudinary: $publicIds") // ✅ Логируем удаляемые файлы
+    //
+    //     CoroutineScope(Dispatchers.IO).launch {
+    //         try {
+    //             val deleteResults = publicIds.map { publicId ->
+    //                 MediaManager.get().cloudinary.uploader().destroy(publicId, null)
+    //             }
+    //
+    //             val successfulDeletes = deleteResults.count { it?.get("result") == "ok" }
+    //             Log.d("PhotoRepository", "Успешно удалено фото: $successfulDeletes из ${publicIds.size}")
+    //
+    //             withContext(Dispatchers.Main) {
+    //                 onComplete()
+    //             }
+    //         } catch (e: Exception) {
+    //             Log.e("PhotoRepository", "Ошибка массового удаления из Cloudinary: ${e.message}", e)
+    //             withContext(Dispatchers.Main) {
+    //                 onComplete()
+    //             }
+    //         }
+    //     }
+    // }
 
 
     fun deletePhoto(folder: String, photoId: String, imageUrl: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
@@ -292,16 +295,16 @@ class PhotoRepository @Inject constructor(
             .document(photoId)
             .delete()
             .addOnSuccessListener {
-                val publicId = BuildConfig.CLOUDINARY_UPLOAD_DIR + "/" + imageUrl.substringAfterLast("/").substringBeforeLast(".")
-
+                // val publicId = imageUrl.substringAfterLast("/").substringBeforeLast(".")
+                val publicId = CloudinaryUtils.extractPublicId(imageUrl)
 
                 Log.d("PhotoRepository", "Extracted publicId: $publicId from URL: $imageUrl")
 
-                if (publicId.isEmpty()) {
-                    Log.e("PhotoRepository", "Invalid publicId extracted from URL: $imageUrl")
-                    onFailure(Exception("Invalid publicId"))
-                    return@addOnSuccessListener
-                }
+                // if (publicId?.isEmpty() == true) {
+                //     Log.e("PhotoRepository", "Invalid publicId extracted from URL: $imageUrl")
+                //     onFailure(Exception("Invalid publicId"))
+                //     return@addOnSuccessListener
+                // }
 
                 // Запускаем удаление из Cloudinary в фоновом потоке
                 CoroutineScope(Dispatchers.IO).launch {
@@ -333,23 +336,86 @@ class PhotoRepository @Inject constructor(
             }
     }
 
-    fun deleteFolder(folder: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
-        val uid = userId ?: return // ✅ Если пользователь не залогинен, ничего не делаем
+    // fun deleteFolder(folder: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
+    //     val uid = userId ?: return // ✅ Если пользователь не залогинен, ничего не делаем
+    //
+    //     val folderRef = firestore.collection(userFolder).document(folder).collection("Photos")
+    //
+    //     folderRef.get().addOnSuccessListener { snapshot ->
+    //         val batch = firestore.batch()
+    //         val photoUrls = mutableListOf<String>()
+    //
+    //         // snapshot.documents.forEach { doc ->
+    //         //     batch.delete(doc.reference)
+    //         //     val photo = doc.toObject(Photo::class.java)
+    //         //     photo?.imageUrl?.let { photoUrls.add(it) } // ✅ Собираем ссылки на фото
+    //         // }
+    //         snapshot.documents.forEach { doc ->
+    //             batch.delete(doc.reference)
+    //             val photo = doc.toObject(Photo::class.java)
+    //             photo?.imageUrl?.let {
+    //                 try {
+    //                     val publicId = CloudinaryUtils.extractPublicId(it)
+    //                     publicId?.let { id ->
+    //                         photoUrls.add(id)
+    //                     }
+    //                 } catch (e: Exception) {
+    //                     Log.e("PhotoRepository", "Ошибка извлечения publicId из ${it}: ${e.message}")
+    //                 }
+    //             }
+    //         }
+    //
+    //         batch.commit().addOnSuccessListener {
+    //             deletePhotosFromCloudinary(photoUrls) {
+    //                 firestore.collection(userFolder).document(folder).delete()
+    //                     .addOnSuccessListener { onSuccess() }
+    //                     .addOnFailureListener { onFailure(it) }
+    //             }
+    //         }.addOnFailureListener { onFailure(it) }
+    //     }.addOnFailureListener { onFailure(it) }
+    // }
 
+
+
+    private fun deletePhotosFromCloudinary(publicIds: List<String>, onComplete: () -> Unit) {
+        if (publicIds.isEmpty()) {
+            onComplete()
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val deleteResults = publicIds.map { publicId ->
+                    MediaManager.get().cloudinary.uploader().destroy(publicId, null)
+                }
+                Log.d("PhotoRepository", "Удалено ${deleteResults.count { it?.get("result") == "ok" }} из ${publicIds.size} фото")
+                withContext(Dispatchers.Main) { onComplete() }
+            } catch (e: Exception) {
+                Log.e("PhotoRepository", "Ошибка удаления из Cloudinary: ${e.message}")
+                withContext(Dispatchers.Main) { onComplete() }
+            }
+        }
+    }
+
+    fun deleteFolder(folder: String, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val folderRef = firestore.collection(userFolder).document(folder).collection("Photos")
 
         folderRef.get().addOnSuccessListener { snapshot ->
             val batch = firestore.batch()
-            val photoUrls = mutableListOf<String>()
-
-            snapshot.documents.forEach { doc ->
-                batch.delete(doc.reference)
-                val photo = doc.toObject(Photo::class.java)
-                photo?.imageUrl?.let { photoUrls.add(it) } // ✅ Собираем ссылки на фото
+            val publicIds = snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Photo::class.java)?.imageUrl?.let { url ->
+                    batch.delete(doc.reference)
+                    try {
+                        CloudinaryUtils.extractPublicId(url)
+                    } catch (e: Exception) {
+                        Log.e("PhotoRepository", "Ошибка извлечения publicId: ${e.message}")
+                        null
+                    }
+                }
             }
 
             batch.commit().addOnSuccessListener {
-                deletePhotosFromCloudinary(photoUrls) {
+                deletePhotosFromCloudinary(publicIds) {
                     firestore.collection(userFolder).document(folder).delete()
                         .addOnSuccessListener { onSuccess() }
                         .addOnFailureListener { onFailure(it) }
@@ -357,6 +423,9 @@ class PhotoRepository @Inject constructor(
             }.addOnFailureListener { onFailure(it) }
         }.addOnFailureListener { onFailure(it) }
     }
+
+
+
 
     fun uploadPhotoToCloudinary(photoPath: String, folder: String, onSuccess: (String) -> Unit, onFailure: (Exception) -> Unit) {
         val file = File(photoPath).absolutePath

@@ -31,13 +31,13 @@ check_sign_debug:
 	jarsigner -verify -verbose -certs app/build/outputs/apk/debug/app-debug.apk
 
 show_keystore:
-	keytool -list -v -keystore "%USERPROFILE%/.keystore/release.jks" -alias myprojects-release
+	keytool -list -v -keystore "%USERPROFILE%/.keystore/release.keystore" -alias my-release-key
 
 show_signing_report:
 	gradlew signingReport
 
 generate_keystore:
 	keytool -genkeypair -v \
-	  -keystore release.keystore \
+	  -keystore "%USERPROFILE%/.keystore/release.keystore" \
 	  -keyalg RSA -keysize 2048 -validity 10000 \
 	  -alias my-release-key
