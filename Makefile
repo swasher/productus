@@ -30,10 +30,10 @@ check_sign_release:
 check_sign_debug:
 	jarsigner -verify -verbose -certs app/build/outputs/apk/debug/app-debug.apk
 
-show_sha1:
+show_keystore:
 	keytool -list -v -keystore "%USERPROFILE%/.keystore/release.jks" -alias myprojects-release
 
-sha1:
+show_signing_report:
 	gradlew signingReport
 
 generate_keystore:
